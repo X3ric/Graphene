@@ -73,7 +73,7 @@ void MatrixPerspective(GLfloat fov, GLfloat aspect, GLfloat near, GLfloat far, b
     memset(matrix, 0, sizeof(GLfloat) * 16);
     if (is3d) {
         matrix[0] = 1.0f / (aspect * tanHalfFov);
-        matrix[5] = -1.0f / tanHalfFov;
+        matrix[5] = 1.0f / tanHalfFov;
     } else {
         matrix[0] = -1.0f / (aspect * tanHalfFov);
         matrix[5] = 1.0f / tanHalfFov;
@@ -149,4 +149,10 @@ void TransformVertices(GLfloat *vertices, size_t vertexCount, const GLfloat *rot
 Vec3 Vec3Add(const Vec3 vec1, const Vec3 vec2) {
     Vec3 result = { vec1.x + vec2.x, vec1.y + vec2.y, vec1.x + vec2.x };
     return result;
+}
+
+void CombineTransformation(GLfloat* modelMatrix, const GLfloat* translationMatrix, const GLfloat* rotationMatrix) {
+    GLfloat tempMatrix[16];
+    MatrixMultiply(translationMatrix, rotationMatrix, tempMatrix);
+    memcpy(modelMatrix, tempMatrix, sizeof(GLfloat) * 16);
 }

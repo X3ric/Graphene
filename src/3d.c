@@ -13,9 +13,9 @@ Camera cam = {
     0.0f, 0.0f, 0.0f,   // LocalPosition: x, y, z
     0.0f, 0.0f, 0.0f    // Rotation: x, y, z
     },
-    0.0f,               // Fov 0 means Orthographic
-    0.0f,               // Far Distance when 0.0 is def to 1000.0f
-    -1000.0f            // Near Distance 
+    60.0f,              // Fov 0 means Orthographic
+    1000.0f,            // Far Distance
+    0.0f                // Near Distance 
 };
 
 void update(void) {
@@ -35,9 +35,9 @@ void update(void) {
             cube.y -= speed * clampz;
         }
         if (isKeyDown("a")) {
-            cube.x += speed * clampz;
-        } else if (isKeyDown("d")) {
             cube.x -= speed * clampz;
+        } else if (isKeyDown("d")) {
+            cube.x += speed * clampz;
         }
         if (isKeyDown("e")) {
             targetZ = targetZ + speed * clampz;

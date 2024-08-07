@@ -31,19 +31,23 @@ void CalculateProjections(ShaderObject obj, GLfloat *Model, GLfloat *Projection,
     Vec3 clpos = obj.cam.transform.localposition;
     Vec3 cpos = obj.cam.transform.position;
     Vec3 crot = obj.cam.transform.rotation;
+    float centerX = window.screen_width / 2.0f;
+    float centerY = window.screen_height / 2.0f;
+    float distance = 1.0f;
+    GLfloat translateToCenter[16], rotate[16], translateBack[16], translateFinal[16];
     if(obj.cam.far == 0.0f)
         obj.cam.far = 1000.0f;
     if(obj.cam.fov > 0.0f){ // Perspective projection
-        MatrixPerspective(obj.cam.fov, window.screen_width/window.screen_height, obj.cam.near, obj.cam.far, obj.is3d, Projection);
-        MatrixRotate(rot.x, rot.y, rot.z, Model);
-        GLfloat translateToWorld[16];
-        MatrixTranslate(0.0f, 0.0f, pos.z, translateToWorld);
-        MatrixMultiply(Model, translateToWorld, Model);
-        MatrixLookAt(lpos.x, lpos.y, lpos.z + 3.0f, pos.x, pos.y, 0.0f, 0.0f, 1.0f, 0.0f, View);
+        MatrixPerspective(obj.cam.fov, window.screen_width / window.screen_height, obj.cam.near, obj.cam.far, obj.is3d, Projection);
+        MatrixPerspective(obj.cam.fov, window.screen_width / window.screen_height, obj.cam.near, obj.cam.far, obj.is3d, Projection);
+        MatrixIdentity(Model);
+        MatrixTranslate(-obj.transform.position.x, -obj.transform.position.y, -obj.transform.position.z, translateToCenter);
+        MatrixRotate(rot.x, rot.y, rot.z, rotate);
+        MatrixMultiply(translateToCenter, rotate, Model);
+        MatrixTranslate(obj.transform.position.x, obj.transform.position.y, obj.transform.position.z, translateBack);
+        MatrixMultiply(Model, translateBack, Model);
+        distance = 3.0f;
     } else { // Orthographic projection
-        float centerX = window.screen_width / 2.0f;
-        float centerY = window.screen_height / 2.0f;
-        GLfloat translateToCenter[16], rotate[16], translateBack[16], translateFinal[16];
         if(obj.is3d) { // if the model vertices are also in z axys
             MatrixOrthographicZoom(0.0f, window.screen_width, window.screen_height, 0.0f, obj.cam.near, obj.cam.far, pos.z + cpos.z, obj.is3d, Projection);
             MatrixRotate(rot.x, rot.y, rot.z, rotate);
@@ -59,13 +63,13 @@ void CalculateProjections(ShaderObject obj, GLfloat *Model, GLfloat *Projection,
             MatrixMultiply(Model, translateBack, Model);
             MatrixMultiply(Model, translateFinal, Model);
         }
-        MatrixLookAt(
-            lpos.x, lpos.y, lpos.z + 1.0f, // Eye position
-            0.0f, 0.0f, 0.0f,              // Look at position
-            0.0f, 1.0f, 0.0f,              // Up vector
-            View
-        );
     }
+    MatrixLookAt(
+        lpos.x, lpos.y, lpos.z + distance, // Eye position
+        0.0f, 0.0f, 0.0f,                  // Look at position
+        0.0f, 1.0f, 0.0f,                  // Up vector
+        View
+    );
 }
 
 void RenderShader(ShaderObject obj) {
@@ -80,7 +84,7 @@ void RenderShader(ShaderObject obj) {
                 glEnable(GL_DEPTH_TEST);
                 glDepthFunc(GL_LEQUAL);
                 glEnable(GL_CULL_FACE);
-                glCullFace(GL_FRONT);
+                glCullFace(GL_BACK);
                 glFrontFace(GL_CCW);
             } else {
                 glEnable(GL_DEPTH_TEST);
@@ -286,8 +290,8 @@ typedef struct {
 
 void Cube(CubeObject cube) {
     GLfloat hs = cube.size / 2.0f;
-    Vec3 pos = cube.transform.localposition;
-    Vec3 rot = cube.transform.rotation; // Rotation not used but can be applied
+    Vec3 pos = cube.transform.position;
+    Vec3 rot = cube.transform.rotation;
     GLfloat x1 = pos.x - hs, x2 = pos.x + hs;
     GLfloat y1 = pos.y - hs, y2 = pos.y + hs;
     GLfloat z1 = pos.z - hs, z2 = pos.z + hs;
@@ -324,18 +328,13 @@ void Cube(CubeObject cube) {
         x1, y1, z2, 0.0f, 1.0f
     };
     GLuint indices[] = {
-        // Front face
-        0, 1, 2, 2, 3, 0,
-        // Back face
-        4, 7, 6, 6, 5, 4,
-        // Top face
-        8, 11, 10, 10, 9, 8,
-        // Bottom face
-        12, 13, 14, 14, 15, 12,
-        // Right face
-        16, 17, 18, 18, 19, 16,
-        // Left face
-        20, 23, 22, 22, 21, 20
+        0, 1, 2, 2, 3, 0,       // Front face
+        4, 7, 6, 6, 5, 4,       // Back face
+        8, 11, 10, 10, 9, 8,    // Top face
+        12, 13, 14, 14, 15, 12, // Bottom face
+        16, 17, 18, 18, 19, 16, // Right face
+        20, 23, 22, 22, 21, 20  // Left face
     };
     RenderShader((ShaderObject){cube.cam, cube.shader, vertices, indices, sizeof(vertices), sizeof(indices), cube.transform, true});
 }
+

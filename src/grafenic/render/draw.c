@@ -36,8 +36,8 @@ void DrawRectBorder(int x, int y, int width, int height, int thickness, Color co
     if (color.a == 0) color.a = 255;
     DrawRect(x, y, width, thickness, color);
     DrawRect(x, y + height - thickness, width, thickness, color);
-    DrawRect(x, y, thickness, height, color);
-    DrawRect(x + width - thickness, y, thickness, height, color);
+    DrawRect(x, y + thickness, thickness, height - (thickness * 2), color);
+    DrawRect(x + width - thickness, y + thickness, thickness, height - (thickness * 2), color);
 }
 
 void DrawLine(float x0, float y0, float x1, float y1, int thickness, Color color) {

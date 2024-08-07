@@ -11,9 +11,9 @@ bool cursor;
 void update(void){
     // Input   
         if(isKey("M")){ // Change Cursor state
-            cursor = false;
+            window.opt.hidecursor = false;
         } else {
-            cursor = true;
+            window.opt.hidecursor = true;
         }
     // Cursor
         double speed;
