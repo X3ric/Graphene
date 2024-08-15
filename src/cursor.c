@@ -50,7 +50,7 @@ void update(void){
         if(isKey("Space")){
             bary = window.screen_height / 12;
             DrawRect(0, window.screen_height - bary, window.screen_width, bary, (Color){50, 50, 50,100});
-            DrawRectBorder(0, window.screen_height - bary, window.screen_width, bary, Scaling(5), (Color){0, 0, 0,175});
+            DrawRectBorder(0, window.screen_height - bary, window.screen_width, bary, Scaling(5), (Color){5, 5, 5, 245});
             int texts = 3;
             // Mouse info
                 DrawTextRows( font,0,texts, text("Mouse = X: %.0f Y: %.0f", mouse.x, mouse.y));
@@ -72,7 +72,6 @@ int main(int arglenght, char** args)
 { 
     WindowInit(1920, 1080, "Grafenic");
     font = LoadFont("./res/fonts/Monocraft.ttf");font.nearest = true;
-    ClearColor((Color){75, 75, 75,100});
     while (!WindowState())
     {
         WindowClear();

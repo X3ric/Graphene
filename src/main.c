@@ -2,8 +2,21 @@
 #include "grafenic/ui.c"
 
 Font font;
+Shader skybox;
 
 void update(void){
+    // Shader on Screen "Skybox"
+        int x = 0; int y = 0;
+        int width = window.screen_width;
+        int height = window.screen_width;
+        Rect((RectObject){
+            {x, y + height, 0.0f},         // Bottom Left
+            {x + width, y + height, 0.0f}, // Bottom Right
+            {x, y, 0.0f},                  // Top Left
+            {x + width, y, 0.0f},          // Top Right
+            skybox,                        // Shader
+            camera,                        // Camera
+        });
     // Input Example
         //      Key                    MouseButton                      Info
         // isKey,isKeyReset  // isMouseButton,isMouseButtonReset  // key Bool
@@ -13,9 +26,9 @@ void update(void){
         //    DrawCircle(mouse.x,mouse.y, Scaling(35), (Color){0, 0, 0, 75});
         //}
         //if(isKey("V")){ // Change Vsync state
-        //    vsync = true;
+        //    window.opt.vsync = true;
         //} else {
-        //    vsync = false;
+        //    window.opt.vsync = false;
         //}
     // Easing Lerp
         //int sizeball  = Lerp(0, 50,  Easing(Motion(1.0,0.5), "Linear"));
@@ -46,17 +59,18 @@ void update(void){
     // Modular ui.c functions
         // Left Text Bar
             //int texts = 9;
-            //DrawTextColumn(font,1,texts, text("V = vsync state: %s", vsync ? "ON" : "OFF"));
+            //DrawTextColumn(font,1,texts, text("V = vsync state: %s", window.opt.vsync ? "ON" : "OFF"));
             //DrawTextColumn(font,2,texts, text("Esc = exitbar state: %s", isKey("Esc") ? "ON" : "OFF"));
-            //DrawTextColumn(font,3,texts, text("Space = bar state: %s", !isKey("Space") ? "ON" : "OFF"));
         Fps(0, 0, font, Scaling(50));
         ExitPromt(font);  
-} 
+}
 
 int main(int arglenght, char** args)
 { 
     WindowInit(1920, 1080, "Grafenic");
     font = LoadFont("./res/fonts/Monocraft.ttf");font.nearest = true;
+    skybox = LoadShader("./res/shaders/default.vert","./res/shaders/skybox.frag");
+    skybox.hotreloading = true;shaderdefault.hotreloading = true;
     ClearColor((Color){75, 75, 75,100});
     // Saving how many times you boot
         //char* path = "./data.txt";

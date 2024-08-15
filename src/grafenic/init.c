@@ -1,7 +1,7 @@
-#include <GL/glew.h>
-#include <GL/gl.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#include <GL/glew.h>
+#include <GL/gl.h>
 #include <stdbool.h>
 #include <time.h>
 
@@ -210,14 +210,12 @@ void WindowStateSet(bool state) {
 
 void WindowClose()
 {
-    glfwSetKeyCallback(window.w, NULL);
     print("Exit\n");
     AudioStop();
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
     glDeleteProgram(shaderdefault.Program);
-    stbi_image_free(img.data);
     glfwDestroyWindow(window.w);
     glfwTerminate();
 }

@@ -2,7 +2,7 @@
 #include "grafenic/ui.c"
 
 Font font;
-Image img;
+Img img;
 Vec3 cube;
 double lastscrolly = 0.0;
 double targetZ = 0.0;
@@ -13,7 +13,7 @@ Camera cam = {
     0.0f, 0.0f, 0.0f,   // LocalPosition: x, y, z
     0.0f, 0.0f, 0.0f    // Rotation: x, y, z
     },
-    60.0f,              // Fov 0 means Orthographic
+    0.0f,               // Fov 0 means Orthographic
     1000.0f,            // Far Distance
     0.0f                // Near Distance 
 };
@@ -86,9 +86,8 @@ void update(void) {
 int main(int argc, char** argv) {
     WindowInit(1920, 1080, "Grafenic");
     font = LoadFont("./res/fonts/Monocraft.ttf");font.nearest = true;
-    img = LoadImage("./res/images/Test.png");
+    img = LoadImage((ImgInfo){"./res/images/Stone.png", true});
     shaderdefault.hotreloading = true;
-    ClearColor((Color){75, 75, 75, 100});
     while (!WindowState()) {
         WindowClear();
         update();

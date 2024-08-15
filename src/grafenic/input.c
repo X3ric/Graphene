@@ -108,11 +108,43 @@ int KeyChar(const char* character) {
         if (strcmp(character, "RightSuper") == 0) return GLFW_KEY_RIGHT_SUPER;
     // Menu key
         if (strcmp(character, "Menu") == 0) return GLFW_KEY_MENU;
+    // Mouse Keys
+        if (strcmp(character, "Mouse1") == 0) return GLFW_MOUSE_BUTTON_1;
+        if (strcmp(character, "Mouse2") == 0) return GLFW_MOUSE_BUTTON_2;
+        if (strcmp(character, "Mouse3") == 0) return GLFW_MOUSE_BUTTON_3;
+        if (strcmp(character, "Mouse4") == 0) return GLFW_MOUSE_BUTTON_4;
+        if (strcmp(character, "Mouse5") == 0) return GLFW_MOUSE_BUTTON_5;
+        if (strcmp(character, "Mouse6") == 0) return GLFW_MOUSE_BUTTON_6;
+        if (strcmp(character, "Mouse7") == 0) return GLFW_MOUSE_BUTTON_7;
+        if (strcmp(character, "Mouse8") == 0) return GLFW_MOUSE_BUTTON_8;
+    // Gamepad Keys
+        if (strcmp(character, "GamepadA") == 0) return GLFW_GAMEPAD_BUTTON_A;
+        if (strcmp(character, "GamepadB") == 0) return GLFW_GAMEPAD_BUTTON_B;
+        if (strcmp(character, "GamepadX") == 0) return GLFW_GAMEPAD_BUTTON_X;
+        if (strcmp(character, "GamepadY") == 0) return GLFW_GAMEPAD_BUTTON_Y;
+        if (strcmp(character, "LeftBumper") == 0) return GLFW_GAMEPAD_BUTTON_LEFT_BUMPER;
+        if (strcmp(character, "RightBumper") == 0) return GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER;
+        if (strcmp(character, "Back") == 0) return GLFW_GAMEPAD_BUTTON_BACK;
+        if (strcmp(character, "Start") == 0) return GLFW_GAMEPAD_BUTTON_START;
+        if (strcmp(character, "Guide") == 0) return GLFW_GAMEPAD_BUTTON_GUIDE;
+        if (strcmp(character, "LeftThumb") == 0) return GLFW_GAMEPAD_BUTTON_LEFT_THUMB;
+        if (strcmp(character, "RightThumb") == 0) return GLFW_GAMEPAD_BUTTON_RIGHT_THUMB;
+        if (strcmp(character, "L3") == 0) return GLFW_GAMEPAD_BUTTON_LEFT_THUMB; // Alternative label for LeftThumb
+        if (strcmp(character, "R3") == 0) return GLFW_GAMEPAD_BUTTON_RIGHT_THUMB; // Alternative label for RightThumb
+        if (strcmp(character, "DpadUp") == 0) return GLFW_GAMEPAD_BUTTON_DPAD_UP;
+        if (strcmp(character, "DpadRight") == 0) return GLFW_GAMEPAD_BUTTON_DPAD_RIGHT;
+        if (strcmp(character, "DpadDown") == 0) return GLFW_GAMEPAD_BUTTON_DPAD_DOWN;
+        if (strcmp(character, "DpadLeft") == 0) return GLFW_GAMEPAD_BUTTON_DPAD_LEFT;
+        if (strcmp(character, "Cross") == 0) return GLFW_GAMEPAD_BUTTON_CROSS; // Alternative label for A
+        if (strcmp(character, "Circle") == 0) return GLFW_GAMEPAD_BUTTON_CIRCLE; // Alternative label for B
+        if (strcmp(character, "Square") == 0) return GLFW_GAMEPAD_BUTTON_SQUARE; // Alternative label for X
+        if (strcmp(character, "Triangle") == 0) return GLFW_GAMEPAD_BUTTON_TRIANGLE; // Alternative label for Y
     // If no match found
     return GLFW_KEY_UNKNOWN;
 }
 
 // KEYS
+
     int isKeyDown(const char* character) {
         int key = KeyChar(character);
         return glfwGetKey(window.w, key) == GLFW_PRESS;
@@ -211,6 +243,73 @@ int KeyChar(const char* character) {
         }
     }
 
+// MOUSE
+
+    typedef struct {
+        double      x, y;
+        double      lastx, lasty;
+        bool        scolling;
+    } MouseScroll;
+
+    typedef struct {
+        double      x, y;
+        double      lastx, lasty;
+        MouseScroll scroll;
+        bool        moving;
+    } Mouse;
+
+    Mouse mouse;
+
+    Mouse MouseInit() {
+        glfwGetCursorPos(window.w, &mouse.x, &mouse.y);
+        if (mouse.scroll.x != mouse.scroll.lastx || mouse.scroll.y != mouse.scroll.lasty) {
+            mouse.scroll.scolling = true;
+        } else {
+            mouse.scroll.scolling = false;
+        }
+        mouse.scroll.lastx = mouse.scroll.x;
+        mouse.scroll.lasty = mouse.scroll.y;
+        if (mouse.x != mouse.lastx || mouse.y != mouse.lasty) {
+            return (Mouse){mouse.x, mouse.y, mouse.x, mouse.y, mouse.scroll, true};
+        }
+        return (Mouse){mouse.x, mouse.y, mouse.lastx, mouse.lasty, mouse.scroll, false};
+    }
+    
+    void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+        mouse.scroll.x += xoffset;
+        mouse.scroll.y += yoffset;
+    }
+
+    void SetCursorPos(float x, float y) {
+        glfwSetCursorPos(window.w,x,y);
+    }
+
+    static int mouseLastState[GLFW_MOUSE_BUTTON_LAST + 1] = {0};
+    static int mouseToggleState[GLFW_MOUSE_BUTTON_LAST + 1] = {0};
+
+    int isMouseButtonDown(int button) {
+        return glfwGetMouseButton(window.w, button) == GLFW_PRESS;
+    }
+
+    int isMouseButtonUp(int button) {
+        return glfwGetMouseButton(window.w, button) == GLFW_RELEASE;
+    }
+
+    int isMouseButton(const int button) {
+        int currentState = glfwGetMouseButton(window.w, button);
+        if (currentState == GLFW_PRESS && mouseLastState[button] == GLFW_RELEASE) {
+            mouseToggleState[button] = !mouseToggleState[button];
+        }
+        mouseLastState[button] = currentState;
+        return mouseToggleState[button];
+    }
+
+    void isMouseButtonReset(const int button) {
+        if (button <= GLFW_MOUSE_BUTTON_LAST) {
+            mouseToggleState[button] = 0;
+        }
+    }
+
 // GAMEPAD & JOYSTICK
 
     #define MAX_JOYSTICKS (GLFW_JOYSTICK_LAST + 1)
@@ -246,32 +345,6 @@ int KeyChar(const char* character) {
         glfwSetJoystickCallback(joystick_callback);
     }
 
-    int GamepadButton(const char* character) {
-        if (!character) return -1;
-        if (strcmp(character, "A") == 0) return GLFW_GAMEPAD_BUTTON_A;
-        if (strcmp(character, "B") == 0) return GLFW_GAMEPAD_BUTTON_B;
-        if (strcmp(character, "X") == 0) return GLFW_GAMEPAD_BUTTON_X;
-        if (strcmp(character, "Y") == 0) return GLFW_GAMEPAD_BUTTON_Y;
-        if (strcmp(character, "LeftBumper") == 0) return GLFW_GAMEPAD_BUTTON_LEFT_BUMPER;
-        if (strcmp(character, "RightBumper") == 0) return GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER;
-        if (strcmp(character, "Back") == 0) return GLFW_GAMEPAD_BUTTON_BACK;
-        if (strcmp(character, "Start") == 0) return GLFW_GAMEPAD_BUTTON_START;
-        if (strcmp(character, "Guide") == 0) return GLFW_GAMEPAD_BUTTON_GUIDE;
-        if (strcmp(character, "LeftThumb") == 0) return GLFW_GAMEPAD_BUTTON_LEFT_THUMB;
-        if (strcmp(character, "RightThumb") == 0) return GLFW_GAMEPAD_BUTTON_RIGHT_THUMB;
-        if (strcmp(character, "L3") == 0) return GLFW_GAMEPAD_BUTTON_LEFT_THUMB; // Alternative label for LeftThumb
-        if (strcmp(character, "R3") == 0) return GLFW_GAMEPAD_BUTTON_RIGHT_THUMB; // Alternative label for RightThumb
-        if (strcmp(character, "DpadUp") == 0) return GLFW_GAMEPAD_BUTTON_DPAD_UP;
-        if (strcmp(character, "DpadRight") == 0) return GLFW_GAMEPAD_BUTTON_DPAD_RIGHT;
-        if (strcmp(character, "DpadDown") == 0) return GLFW_GAMEPAD_BUTTON_DPAD_DOWN;
-        if (strcmp(character, "DpadLeft") == 0) return GLFW_GAMEPAD_BUTTON_DPAD_LEFT;
-        if (strcmp(character, "Cross") == 0) return GLFW_GAMEPAD_BUTTON_CROSS; // Alternative label for A
-        if (strcmp(character, "Circle") == 0) return GLFW_GAMEPAD_BUTTON_CIRCLE; // Alternative label for B
-        if (strcmp(character, "Square") == 0) return GLFW_GAMEPAD_BUTTON_SQUARE; // Alternative label for X
-        if (strcmp(character, "Triangle") == 0) return GLFW_GAMEPAD_BUTTON_TRIANGLE; // Alternative label for Y
-        return -1; // Button not recognized
-    }
-
     bool isGamepadConnected(int gamepadId) {
         return glfwJoystickPresent(gamepadId) && glfwJoystickIsGamepad(gamepadId);
     }
@@ -280,7 +353,7 @@ int KeyChar(const char* character) {
         if (!isGamepadConnected(gamepadId)) return 0;
         GLFWgamepadstate state;
         if (!glfwGetGamepadState(gamepadId, &state)) return 0;
-        int button = GamepadButton(buttonName);
+        int button = KeyChar(buttonName);
         return button != -1 ? state.buttons[button] == GLFW_PRESS : 0;
     }
 
@@ -288,12 +361,12 @@ int KeyChar(const char* character) {
         if (!isGamepadConnected(gamepadId)) return 0;
         GLFWgamepadstate state;
         if (!glfwGetGamepadState(gamepadId, &state)) return 0;
-        int button = GamepadButton(buttonName);
+        int button = KeyChar(buttonName);
         return button != -1 ? state.buttons[button] == GLFW_RELEASE : 0;
     }
 
     int isGamepadButton(const char* character) {
-        int key = GamepadButton(character);
+        int key = KeyChar(character);
         if (key == GLFW_KEY_UNKNOWN || key > GLFW_KEY_LAST) {
             return false;
         }
@@ -305,7 +378,7 @@ int KeyChar(const char* character) {
     }
 
     void isGamepadButtonReset(const char* character) {
-        int key = GamepadButton(character);
+        int key = KeyChar(character);
         if (key != GLFW_KEY_UNKNOWN && key <= GLFW_KEY_LAST) {
             toggleState[key] = 0;
         }
@@ -329,71 +402,4 @@ int KeyChar(const char* character) {
         int axis = GamepadAxisValue(axisName);
         if (axis == -1) return 0.0f;
         return state.axes[axis];
-    }
-
-// MOUSE
-
-    typedef struct {
-        double      x, y;
-        double      lastx, lasty;
-        bool        scolling;
-    } MouseScroll;
-
-    typedef struct {
-        double      x, y;
-        double      lastx, lasty;
-        MouseScroll scroll;
-        bool        moving;
-    } Mouse;
-
-    Mouse mouse;
-
-    Mouse MouseInit() {
-        glfwGetCursorPos(window.w, &mouse.x, &mouse.y);
-        if (mouse.scroll.x != mouse.scroll.lastx || mouse.scroll.y != mouse.scroll.lasty) {
-            mouse.scroll.scolling = true;
-        } else {
-            mouse.scroll.scolling = false;
-        }
-        mouse.scroll.lastx = mouse.scroll.x;
-        mouse.scroll.lasty = mouse.scroll.y;
-        if (mouse.x != mouse.lastx || mouse.y != mouse.lasty) {
-            return (Mouse){mouse.x, mouse.y, mouse.x, mouse.y, mouse.scroll, true};
-        }
-        return (Mouse){mouse.x, mouse.y, mouse.lastx, mouse.lasty, mouse.scroll, false};
-    }
-
-    void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-        mouse.scroll.x += xoffset;
-        mouse.scroll.y += yoffset;
-    }
-
-    void SetCursorPos(float x, float y) {
-        glfwSetCursorPos(window.w,x,y);
-    }
-
-    static int mouseLastState[GLFW_MOUSE_BUTTON_LAST + 1] = {0};
-    static int mouseToggleState[GLFW_MOUSE_BUTTON_LAST + 1] = {0};
-
-    int isMouseButtonDown(int button) {
-        return glfwGetMouseButton(window.w, button) == GLFW_PRESS;
-    }
-
-    int isMouseButtonUp(int button) {
-        return glfwGetMouseButton(window.w, button) == GLFW_RELEASE;
-    }
-
-    int isMouseButton(const int button) {
-        int currentState = glfwGetMouseButton(window.w, button);
-        if (currentState == GLFW_PRESS && mouseLastState[button] == GLFW_RELEASE) {
-            mouseToggleState[button] = !mouseToggleState[button];
-        }
-        mouseLastState[button] = currentState;
-        return mouseToggleState[button];
-    }
-
-    void isMouseButtonReset(const int button) {
-        if (button <= GLFW_MOUSE_BUTTON_LAST) {
-            mouseToggleState[button] = 0;
-        }
     }

@@ -39,8 +39,6 @@ void CalculateProjections(ShaderObject obj, GLfloat *Model, GLfloat *Projection,
         obj.cam.far = 1000.0f;
     if(obj.cam.fov > 0.0f){ // Perspective projection
         MatrixPerspective(obj.cam.fov, window.screen_width / window.screen_height, obj.cam.near, obj.cam.far, obj.is3d, Projection);
-        MatrixPerspective(obj.cam.fov, window.screen_width / window.screen_height, obj.cam.near, obj.cam.far, obj.is3d, Projection);
-        MatrixIdentity(Model);
         MatrixTranslate(-obj.transform.position.x, -obj.transform.position.y, -obj.transform.position.z, translateToCenter);
         MatrixRotate(rot.x, rot.y, rot.z, rotate);
         MatrixMultiply(translateToCenter, rotate, Model);
@@ -50,9 +48,11 @@ void CalculateProjections(ShaderObject obj, GLfloat *Model, GLfloat *Projection,
     } else { // Orthographic projection
         if(obj.is3d) { // if the model vertices are also in z axys
             MatrixOrthographicZoom(0.0f, window.screen_width, window.screen_height, 0.0f, obj.cam.near, obj.cam.far, pos.z + cpos.z, obj.is3d, Projection);
+            MatrixTranslate(-obj.transform.position.x, -obj.transform.position.y, -obj.transform.position.z, translateToCenter);
             MatrixRotate(rot.x, rot.y, rot.z, rotate);
-            TransformVertices(obj.vertices, obj.size_vertices / (FLOAT_PER_VERTEX * sizeof(GLfloat)), rotate, &pos);
-            MatrixTranslate(pos.x + cpos.x, pos.y + cpos.y, 0.0f, Model);
+            MatrixMultiply(translateToCenter, rotate, Model);
+            MatrixTranslate(obj.transform.position.x, obj.transform.position.y, obj.transform.position.z, translateBack);
+            MatrixMultiply(Model, translateBack, Model);
         } else {
             MatrixOrthographicZoom(0.0f, window.screen_width, window.screen_height, 0.0f, obj.cam.near, obj.cam.far, pos.z, obj.is3d, Projection);
             MatrixTranslate(-centerX, -centerY, 0.0f, translateToCenter);
@@ -79,6 +79,7 @@ void RenderShader(ShaderObject obj) {
     // Projection Matrix
         GLfloat Projection[16], Model[16], View[16];
         CalculateProjections(obj,Model,Projection,View);
+    // Depth
         if(obj.is3d) {
             if(obj.cam.fov > 0.0f){
                 glEnable(GL_DEPTH_TEST);
@@ -95,6 +96,8 @@ void RenderShader(ShaderObject obj) {
             }
         }
     // Debug
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+        //glPointSize(1.5f);
         if (window.debug.wireframe) {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         } else {

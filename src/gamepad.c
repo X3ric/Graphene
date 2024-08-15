@@ -95,7 +95,7 @@ void DrawGamepadInfo(int x, int y, int jid) {
     DrawText(x, y, font, Scaling(22), "  Buttons:", WHITE);
     y += Scaling(25);
     static const char* buttonNames[] = {
-        "A", "B", "X", "Y", "LeftBumper", "RightBumper", "Back", "Start",
+        "GamepadA", "GamepadB", "GamepadX", "GamepadY", "LeftBumper", "RightBumper", "Back", "Start",
         "Guide", "LeftThumb", "RightThumb", "DpadUp", "DpadRight",
         "DpadDown", "DpadLeft", "Cross", "Circle", "Square", "Triangle"
     };

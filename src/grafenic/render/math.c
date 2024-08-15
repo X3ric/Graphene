@@ -112,8 +112,8 @@ void MatrixOrthographicZoom(GLfloat left, GLfloat right, GLfloat bottom, GLfloat
         if (zoomFactor >= 1.0f) zoomFactor = 1.0f;
         GLfloat aspectRatio = (GLfloat)window.screen_width / (GLfloat)window.screen_height;
         GLfloat orthoSize = 1.0f - zoomFactor;
-        GLfloat left1 = -orthoSize * aspectRatio;
-        GLfloat right1 = orthoSize * aspectRatio;
+        GLfloat left1 = orthoSize * aspectRatio;
+        GLfloat right1 = -orthoSize * aspectRatio;
         GLfloat bottom1 = -orthoSize;
         GLfloat top1 = orthoSize;
         MatrixOrthographic(left1, right1, bottom1, top1, zNear, zFar, matrix);

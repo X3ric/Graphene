@@ -104,6 +104,12 @@ void DeleteShader(Shader shader) {
 
 // OpenGl Utils
 
+void UnbindTexture(){
+    glDisable(GL_BLEND);
+    glDisable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void glTexOpt(GLint filter,GLint warp){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);

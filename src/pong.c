@@ -81,7 +81,6 @@ int main(int argc, char** argv) {
     fpslimit = 60;
     WindowInit(1920, 1080, "Grafenic");
     font = LoadFont("./res/fonts/Monocraft.ttf");
-    ClearColor((Color){0, 0, 0, 100});
     leftPaddle = (Paddle){0,window.screen_height / 2 - PADDLE_HEIGHT / 2, PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_SPEED};
     rightPaddle = (Paddle){window.screen_width - (PADDLE_WIDTH), window.screen_height / 2 - PADDLE_HEIGHT / 2, PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_SPEED};
     ball = (Ball){window.screen_width/2,window.screen_height/2, BALL_SIZE, BALL_SPEED, BALL_SPEED};

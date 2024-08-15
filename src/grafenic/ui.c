@@ -22,7 +22,7 @@ void DrawPopUp(const char* title, Font font, int fontsize, int width, int height
     int x = (window.screen_width / 2) - (width / 2);
     int y = (window.screen_height / 2) - (height / 2);
     DrawRect(x, y, width, height, (Color){50, 50, 50, 100});
-    DrawRectBorder(x, y, width, height, Scaling(5), (Color){0, 0, 0});
+    DrawRectBorder(x, y, width, height, Scaling(5), (Color){5, 5, 5, 245});
     TextSize text = GetTextSize(font, fontsize, title);
     int textX = x + (width / 2) - (text.width / 2);
     int textY = y + (height / 2) - (text.height / 2);

@@ -2,7 +2,7 @@
 #include "grafenic/ui.c"
 
 Font font;
-Image img;
+Img img;
 Shader custom;
 Color pixelColor;
 
@@ -44,7 +44,7 @@ void update(void){
         }
         if (mouse.scroll.y <= 0) {mouse.scroll.y = 0;}
         if (isKeyDown("e")) {
-           camera.transform.rotation.y -= (speed / 1000.0f) * clampz;
+           camera.transform.rotation.z -= (speed / 1000.0f) * clampz;
         } else if (isKeyDown("q")) {
            camera.transform.rotation.z += (speed / 1000.0f) * clampz;
         }
@@ -68,8 +68,7 @@ int main(int arglenght, char** args)
     custom.hotreloading = true;//hotreloading for the shader or put this in the update "shader = ShaderHotReload(shader);" > in this case > "custom = ShaderHotReload(custom);"
     shaderdefault.hotreloading = true;// hot reload on the default pixel shader
     font = LoadFont("./res/fonts/Monocraft.ttf");font.nearest = true;
-    img = LoadImage("./res/images/Test.png");
-    ClearColor((Color){75, 75, 75,100});
+    img = LoadImage((ImgInfo){"./res/images/Test.png"});
     while (!WindowState())
     {
         WindowClear();

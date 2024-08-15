@@ -11,25 +11,19 @@ Camera camera = {
 
 void DrawRect(int x, int y, int width, int height, Color color) {
     if (color.a == 0) color.a = 255;
-    static GLuint textureID;
-    glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    unsigned char pixels[] = { color.r, color.g, color.b, color.a };
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    GLuint textureID = GetCachedTexture(color, true, false, NULL, 0, 0);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D, textureID);
     Rect((RectObject){
-        {x, y + height, 0.0f},         // vert0 (Bottom Left)
-        {x + width, y + height, 0.0f}, // vert1 (Bottom Right)
-        {x, y, 0.0f},                  // vert2 (Top Left)
-        {x + width, y, 0.0f},          // vert3 (Top Right)
+        {x, y + height, 0.0f},         // Bottom Left
+        {x + width, y + height, 0.0f}, // Bottom Right
+        {x, y, 0.0f},                  // Top Left
+        {x + width, y, 0.0f},          // Top Right
         shaderdefault,                 // Shader
         camera,                        // Camera
     });
-    glDisable(GL_BLEND);
-    glDisable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDeleteTextures(1, &textureID);
+    UnbindTexture();
 }
 
 void DrawRectBorder(int x, int y, int width, int height, int thickness, Color color) {
@@ -57,13 +51,10 @@ void DrawLine(float x0, float y0, float x1, float y1, int thickness, Color color
     GLfloat y4 = y1 + offsetY;
     GLfloat x5 = x1 - offsetX;
     GLfloat y5 = y1 - offsetY;
-    static GLuint textureID;
+    GLuint textureID = GetCachedTexture(color, true, false, NULL, 0, 0);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_2D, textureID);
-    unsigned char pixels[] = { color.r, color.g, color.b, color.a };
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     Rect((RectObject){
         { x2, y2, 0.0f },  // Bottom Left
         { x3, y3, 0.0f },  // Bottom Right
@@ -72,111 +63,91 @@ void DrawLine(float x0, float y0, float x1, float y1, int thickness, Color color
         shaderdefault,     // Shader
         camera,            // Camera
     });
-    glDisable(GL_BLEND);
-    glDisable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDeleteTextures(1, &textureID);
+    UnbindTexture();
 }
 
 void DrawCircle(int x, int y, int r, Color color) {
     if (color.a == 0) color.a = 255;
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    unsigned char pixels[r * 2][r * 2][4];
-    for (int i = 0; i < r * 2; i++) {
-        for (int j = 0; j < r * 2; j++) {
+    int diameter = r * 2;
+    unsigned char* pixels = (unsigned char*)malloc(diameter * diameter * 4);
+    for (int i = 0; i < diameter; i++) {
+        for (int j = 0; j < diameter; j++) {
             float dx = i - r;
             float dy = j - r;
             float distance = sqrt(dx * dx + dy * dy);
             if (distance < r) {
-                pixels[i][j][0] = color.r;
-                pixels[i][j][1] = color.g;
-                pixels[i][j][2] = color.b;
-                pixels[i][j][3] = color.a;
+                pixels[(i * diameter + j) * 4] = color.r;
+                pixels[(i * diameter + j) * 4 + 1] = color.g;
+                pixels[(i * diameter + j) * 4 + 2] = color.b;
+                pixels[(i * diameter + j) * 4 + 3] = color.a;
             } else {
-                pixels[i][j][0] = 0;
-                pixels[i][j][1] = 0;
-                pixels[i][j][2] = 0;
-                pixels[i][j][3] = 0;
+                pixels[(i * diameter + j) * 4] = 0;
+                pixels[(i * diameter + j) * 4 + 1] = 0;
+                pixels[(i * diameter + j) * 4 + 2] = 0;
+                pixels[(i * diameter + j) * 4 + 3] = 0;
             }
         }
     }
-    glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, r * 2, r * 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glEnable(GL_TEXTURE_2D);
+    GLuint textureID = GetCachedTexture(color, true, true, pixels, diameter, diameter);
+    free(pixels);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D, textureID);
     Rect((RectObject){
-        {x - r, y - r, 0.0f}, // Bottom Left
-        {x + r, y - r, 0.0f}, // Bottom Right
-        {x - r, y + r, 0.0f}, // Top Left
-        {x + r, y + r, 0.0f}, // Top Right
-        shaderdefault,        // Shader
-        camera,               // Camera
+        { x - r, y - r, 0.0f }, // Bottom Left
+        { x + r, y - r, 0.0f }, // Bottom Right
+        { x - r, y + r, 0.0f }, // Top Left
+        { x + r, y + r, 0.0f }, // Top Right
+        shaderdefault,          // Shader
+        camera,                 // Camera
     });
-    glDisable(GL_BLEND);
-    glDisable(GL_TEXTURE_2D);
-    glDeleteTextures(1, &textureID);
+    UnbindTexture();
 }
 
 void DrawCircleBorder(int x, int y, int r, int thickness, Color color) {
     if (color.a == 0) color.a = 255;
-    static GLuint textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
     int diameter = r * 2 + thickness * 2;
-    unsigned char pixels[diameter][diameter][4];
+    unsigned char* pixels = (unsigned char*)malloc(diameter * diameter * 4);
     for (int i = 0; i < diameter; i++) {
         for (int j = 0; j < diameter; j++) {
             float dx = i - r - thickness;
             float dy = j - r - thickness;
             float distance = sqrt(dx * dx + dy * dy);
             if (distance < r + thickness && distance >= r) {
-                pixels[i][j][0] = color.r;
-                pixels[i][j][1] = color.g;
-                pixels[i][j][2] = color.b;
-                pixels[i][j][3] = color.a;
+                pixels[(i * diameter + j) * 4] = color.r;
+                pixels[(i * diameter + j) * 4 + 1] = color.g;
+                pixels[(i * diameter + j) * 4 + 2] = color.b;
+                pixels[(i * diameter + j) * 4 + 3] = color.a;
             } else {
-                pixels[i][j][0] = 0;
-                pixels[i][j][1] = 0;
-                pixels[i][j][2] = 0;
-                pixels[i][j][3] = 0;
+                pixels[(i * diameter + j) * 4] = 0;
+                pixels[(i * diameter + j) * 4 + 1] = 0;
+                pixels[(i * diameter + j) * 4 + 2] = 0;
+                pixels[(i * diameter + j) * 4 + 3] = 0;
             }
         }
     }
-    glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, diameter, diameter, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glEnable(GL_TEXTURE_2D);
+    GLuint textureID = GetCachedTexture(color, true, true, pixels, diameter, diameter);
+    free(pixels);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D, textureID);
     Rect((RectObject){
-        {x - r - thickness, y - r - thickness, 0.0f}, // Bottom Left
-        {x + r + thickness, y - r - thickness, 0.0f}, // Bottom Right
-        {x - r - thickness, y + r + thickness, 0.0f}, // Top Left
-        {x + r + thickness, y + r + thickness, 0.0f}, // Top Right
+        { x - r - thickness, y - r - thickness, 0.0f }, // Bottom Left
+        { x + r + thickness, y - r - thickness, 0.0f }, // Bottom Right
+        { x - r - thickness, y + r + thickness, 0.0f }, // Top Left
+        { x + r + thickness, y + r + thickness, 0.0f }, // Top Right
         shaderdefault,                                // Shader
         camera,                                       // Camera
     });
-    glDisable(GL_BLEND);
-    glDisable(GL_TEXTURE_2D);
-    glDeleteTextures(1, &textureID);
+    UnbindTexture();
 }
+
 
 void DrawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, Color color) {
     if (color.a == 0) color.a = 255;
-    static GLuint textureID;
-    glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    unsigned char pixels[] = { color.r, color.g, color.b, color.a };
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    GLuint textureID = GetCachedTexture(color, true, false, NULL, 0, 0);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D, textureID);
     Triangle((TriangleObject){
         {x1, y1, 0.0f}, // Vert0: x, y, z
@@ -185,10 +156,7 @@ void DrawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, Color color) {
         shaderdefault,  // Shader
         camera,         // Camera
     });
-    glDisable(GL_BLEND);
-    glDisable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDeleteTextures(1, &textureID);
+    UnbindTexture();
 }
 
 void DrawTriangleBorder(int x1, int y1, int x2, int y2, int x3, int y3, int thickness, Color color) {
@@ -199,23 +167,20 @@ void DrawTriangleBorder(int x1, int y1, int x2, int y2, int x3, int y3, int thic
 
 void DrawCube(GLfloat size, GLfloat x, GLfloat y, GLfloat z, GLfloat rotx, GLfloat roty, GLfloat rotz, Color color) {
     if (color.a == 0) color.a = 255;
-    static GLuint textureID;
-    glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    unsigned char pixels[] = { color.r, color.g, color.b, color.a };
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    GLuint textureID = GetCachedTexture(color, true, false, NULL, 0, 0);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D, textureID);
     Cube((CubeObject){{
         x,      y,      z,    // Position: x, y, z
-        0.0f,   0.0f,   0.0f, // LocalPosition: x, y, z
+        0.0f,    0.0f,   0.0f, // LocalPosition: x, y, z
         rotx,   roty,   rotz, // Rotation: x, y, z
     }, size,                  // Size
     shaderdefault,            // Shader
     camera,                   // Camera
     });
-    glDisable(GL_BLEND);
-    glDisable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDeleteTextures(1, &textureID);
+    UnbindTexture();
 }
+
+#include "image.c"
+#include "font.c"
