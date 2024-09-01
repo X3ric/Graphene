@@ -2,10 +2,10 @@
 #include "grafenic/ui.c"
 
 Font font;
-Shader skybox;
+Shader custom;
 
 void update(void){
-    // Shader on Screen "Skybox"
+    // Shader on Screen "custom"
         int x = 0; int y = 0;
         int width = window.screen_width;
         int height = window.screen_width;
@@ -14,7 +14,7 @@ void update(void){
             {x + width, y + height, 0.0f}, // Bottom Right
             {x, y, 0.0f},                  // Top Left
             {x + width, y, 0.0f},          // Top Right
-            skybox,                        // Shader
+            custom,                        // Shader
             camera,                        // Camera
         });
     // Input Example
@@ -61,7 +61,7 @@ void update(void){
             //int texts = 9;
             //DrawTextColumn(font,1,texts, text("V = vsync state: %s", window.opt.vsync ? "ON" : "OFF"));
             //DrawTextColumn(font,2,texts, text("Esc = exitbar state: %s", isKey("Esc") ? "ON" : "OFF"));
-        Fps(0, 0, font, Scaling(50));
+        //Fps(0, 0, font, Scaling(50));
         ExitPromt(font);  
 }
 
@@ -69,8 +69,8 @@ int main(int arglenght, char** args)
 { 
     WindowInit(1920, 1080, "Grafenic");
     font = LoadFont("./res/fonts/Monocraft.ttf");font.nearest = true;
-    skybox = LoadShader("./res/shaders/default.vert","./res/shaders/skybox.frag");
-    skybox.hotreloading = true;shaderdefault.hotreloading = true;
+    custom = LoadShader("./res/shaders/default.vert","./res/shaders/fractal.frag");
+    custom.hotreloading = true;shaderdefault.hotreloading = true;
     ClearColor((Color){75, 75, 75,100});
     // Saving how many times you boot
         //char* path = "./data.txt";
