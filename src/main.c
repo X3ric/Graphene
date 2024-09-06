@@ -8,7 +8,7 @@ void update(void){
     // Shader on Screen "custom"
         int x = 0; int y = 0;
         int width = window.screen_width;
-        int height = window.screen_width;
+        int height = window.screen_height;
         Rect((RectObject){
             {x, y + height, 0.0f},         // Bottom Left
             {x + width, y + height, 0.0f}, // Bottom Right
@@ -67,6 +67,7 @@ void update(void){
 
 int main(int arglenght, char** args)
 { 
+    window.opt.disablecursor = true;
     WindowInit(1920, 1080, "Grafenic");
     font = LoadFont("./res/fonts/Monocraft.ttf");font.nearest = true;
     custom = LoadShader("./res/shaders/default.vert","./res/shaders/fractal.frag");

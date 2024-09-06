@@ -67,7 +67,8 @@ int main(int arglenght, char** args)
     custom = LoadShader("./res/shaders/default.vert","./res/shaders/default.frag");
     custom.hotreloading = true;//hotreloading for the shader or put this in the update "shader = ShaderHotReload(shader);" > in this case > "custom = ShaderHotReload(custom);"
     shaderdefault.hotreloading = true;// hot reload on the default pixel shader
-    font = LoadFont("./res/fonts/Monocraft.ttf");font.nearest = true;
+    shaderdefaultfont.hotreloading = true;
+    font = LoadFont("./res/fonts/JetBrains.ttf");font.nearest = false;
     img = LoadImage((ImgInfo){"./res/images/Test.png"});
     while (!WindowState())
     {

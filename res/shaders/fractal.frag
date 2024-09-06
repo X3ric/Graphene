@@ -1,26 +1,20 @@
 #version 330 core
 
-uniform float iTime;         // Time in seconds
-uniform vec2 iResolution;    // Resolution of the screen
-uniform vec4 iMouse;         // Mouse position (xy), and click state (zw)
-in vec2 texCoord;            // Texture coordinate from vertex shader
-out vec4 fragColor;          // Output color
+uniform float iTime;           // Time in seconds
+uniform vec2 iResolution;      // Resolution of the screen
+uniform vec2 iMouse;           // Mouse position (x, y)
 
-// Increase this for better anti-aliasing if you have a very fast GPU
-#define AA 2
-#define smooth 1.0
-#define zoom (0.62 + 0.38 * cos(.07 * iTime))
-#define colorchangespeed (7.5 + zoom)
+in vec2 texCoord;              // Texture coordinate from vertex shader
+out vec4 fragColor;            // Output color
+
+#define AA 2                   // Anti-aliasing factor
+#define ZOOM_SPEED 1.0         // Speed of zooming (higher values = faster zoom)
+#define ZOOM_EXPONENT 1.0      // Exponent for zoom (affects zoom rate)
+#define SENSITIVITY_BASE 1.0   // Base sensitivity value (affects mouse sensitivity scaling)
+#define SENSITIVITY_SCALE 0.5  // Sensitivity scaling factor (affects how sensitivity decreases with zoom)
+#define SMOOTH 1.0             // Smooth factor for Mandelbrot set rendering
 
 float mandelbrot(in vec2 c) {
-    #if 1
-    {
-        float c2 = dot(c, c);
-        // Skip computation inside M1 and M2, for optimization
-        if (256.0 * c2 * c2 - 96.0 * c2 + 32.0 * c.x - 3.0 < 0.0) return 0.0;
-        if (16.0 * (c2 + 2.0 * c.x + 1.0) - 1.0 < 0.0) return 0.0;
-    }
-    #endif
     const float B = 256.0;
     float l = 0.0;
     vec2 z = vec2(0.0);
@@ -31,22 +25,25 @@ float mandelbrot(in vec2 c) {
     }
     if (l > 511.0) return 0.0;
     float sl = l - log2(log2(dot(z, z))) + 4.0;
-    l = mix(l, sl, smooth);
-    return l;
+    return mix(l, sl, SMOOTH);
 }
 
 vec3 generateColor(float time) {
     return vec3(
-        0.5 + 0.5 * sin(0.1 * time + 0.0), // R
-        0.5 + 0.5 * sin(0.1 * time + 2.0), // G
-        0.5 + 0.5 * sin(0.1 * time + 4.0)  // B
+        0.5 + 0.5 * sin(0.1 * time + 0.0),
+        0.5 + 0.5 * sin(0.1 * time + 2.0),
+        0.5 + 0.5 * sin(0.1 * time + 4.0)
     );
 }
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 col = vec3(0.0);
+    vec2 mouseNormalized = vec2(iMouse.x / iResolution.x - 0.5, iMouse.y / iResolution.y - 0.5) * 2.0;
+    mouseNormalized.y = -mouseNormalized.y;
+    float zoomFactor = 1.0 + ZOOM_SPEED * iTime;
+    float zoom = pow(zoomFactor, ZOOM_EXPONENT);
+    vec2 zoomCenter = mouseNormalized;
     #if AA > 1
-    // Anti-aliasing: sample the pixel multiple times
     for (int m = 0; m < AA; m++) {
         for (int n = 0; n < AA; n++) {
             vec2 p = (-iResolution.xy + 2.0 * (fragCoord.xy + vec2(float(m), float(n)) / float(AA))) / iResolution.y;
@@ -56,14 +53,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
             vec2 p = (-iResolution.xy + 2.0 * fragCoord.xy) / iResolution.y;
             float time = iTime;
     #endif
-    
-            // Dynamic zoom and rotation based on time
-            float size = 1.0 * zoom;
-            vec2 xy = vec2(p.x * size - p.y * size, p.x * size + p.y * size);
-            // Generate color
-            vec2 c = vec2(-0.745, 0.186) + xy * zoom;
+            vec2 c = (p - zoomCenter) / zoom + zoomCenter;
             float l = mandelbrot(c);
-            vec3 color = generateColor(iTime * colorchangespeed);
+            vec3 color = generateColor(time);
             col += 0.5 + 0.5 * cos(3.0 + l * 0.15 + color);
     #if AA > 1
         }

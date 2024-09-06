@@ -3,10 +3,12 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 
+#include <float.h>
+
 typedef struct {
-    float x0, y0, x1, y1;  // coordinates of the glyph in the atlas
-    float xoff, yoff;      // left/top offsets
-    float xadvance;        // advance widt
+    float x0, y0, x1, y1;  // Coordinates of the glyph in the atlas
+    float xoff, yoff;      // Left/top offsets
+    float xadvance;        // Advance width
 } Glyph;
 
 #define MAX_GLYPHS 256
@@ -24,11 +26,11 @@ typedef struct {
 } Font;
 
 Font GenAtlas(Font font) {
-    if (font.fontSize <= 1) font.fontSize = 24.0;
+    if (font.fontSize <= 1) font.fontSize = 32.0;
     if (!font.fontBuffer) return font;
     if (!font.nearest) font.nearest = false;
-    font.atlasWidth = 512;
-    font.atlasHeight = 512;
+    font.atlasWidth = 1024;
+    font.atlasHeight = 1024;
     font.atlasData = (unsigned char*)calloc(font.atlasWidth * font.atlasHeight * 4, sizeof(unsigned char)); // RGBA
     if (!font.atlasData) {
         free(font.fontBuffer);
@@ -40,7 +42,7 @@ Font GenAtlas(Font font) {
         free(font.fontBuffer);
         return font;
     }
-    stbtt_PackSetOversampling(&packContext, 2, 2);
+    stbtt_PackSetOversampling(&packContext, 4, 4);
     stbtt_packedchar packedChars[MAX_GLYPHS];
     if (!stbtt_PackFontRange(&packContext, font.fontBuffer, 0, font.fontSize, 32, MAX_GLYPHS, packedChars)) {
         stbtt_PackEnd(&packContext);
@@ -62,6 +64,7 @@ Font GenAtlas(Font font) {
     glBindTexture(GL_TEXTURE_2D, font.textureID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, font.atlasWidth, font.atlasHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, font.atlasData);
     glTexOpt(font.nearest ? GL_NEAREST : GL_LINEAR, GL_CLAMP_TO_EDGE);
+    //stbi_write_jpg("/tmp/atlas.jpg", font.atlasWidth, font.atlasHeight, 4, font.atlasData, font.atlasWidth * 4);
     free(font.atlasData);
     return font;
 }
@@ -86,27 +89,6 @@ Font LoadFont(const char* fontPath) {
     fclose(fp);
     font = GenAtlas(font);
     return font;
-}
-
-typedef struct {
-    int width;
-    int height;
-} TextSize;
-
-TextSize GetTextSize(Font font, float fontSize, const char* text) {
-    if (!font.fontBuffer) return (TextSize){0, 0};
-    TextSize size = {0, 0};
-    float scale = stbtt_ScaleForPixelHeight(&font.fontInfo, fontSize);
-    int ascent, descent;
-    stbtt_GetFontVMetrics(&font.fontInfo, &ascent, &descent, 0); 
-    int max_height = (int)((ascent) * scale);
-    for (size_t i = 0; text[i] != '\0'; ++i) {
-        int advanceWidth, leftSideBearing;
-        stbtt_GetCodepointHMetrics(&font.fontInfo, text[i], &advanceWidth, &leftSideBearing);
-        size.width += (int)(advanceWidth * scale);
-    }
-    size.height = max_height;
-    return size;
 }
 
 void GenerateTextTexture(const char* text, Font font, Color color, GLuint* outTexture, int* outWidth, int* outHeight) {
@@ -195,8 +177,29 @@ void DrawText(int x, int y, Font font, float fontSize, const char* text, Color c
         { x + scaledTextWidth, y + scaledTextHeight, 0.0f }, // Bottom Right
         { x, y, 0.0f },                                      // Top Left
         { x + scaledTextWidth, y, 0.0f },                    // Top Right
-        shaderdefault,                                       // Shader
+        shaderdefaultfont,                                   // Shader
         camera,                                              // Camera
     });
     UnbindTexture();
+}
+
+typedef struct {
+    int width;
+    int height;
+} TextSize;
+
+TextSize GetTextSize(Font font, float fontSize, const char* text) {
+    if (!font.fontBuffer) return (TextSize){0, 0};
+    TextSize size = {0, 0};
+    float scale = stbtt_ScaleForPixelHeight(&font.fontInfo, fontSize);
+    int ascent, descent;
+    stbtt_GetFontVMetrics(&font.fontInfo, &ascent, &descent, 0); 
+    int max_height = (int)((ascent) * scale);
+    for (size_t i = 0; text[i] != '\0'; ++i) {
+        int advanceWidth, leftSideBearing;
+        stbtt_GetCodepointHMetrics(&font.fontInfo, text[i], &advanceWidth, &leftSideBearing);
+        size.width += (int)(advanceWidth * scale);
+    }
+    size.height = max_height;
+    return size;
 }

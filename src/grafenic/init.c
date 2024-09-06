@@ -19,6 +19,8 @@ typedef struct {
     bool        floating;
     bool        transparent;
     bool        decorated;
+    bool        disablecursor;
+    bool        olddisablecursor;
     bool        hidecursor;
     bool        oldhidecursor;
     bool        hided;
@@ -87,11 +89,18 @@ void WindowProcess() {
         }
         window.opt.oldfullscreen = window.opt.fullscreen;
     }
-    if (window.opt.hidecursor != window.opt.oldhidecursor) {
-        if (window.opt.hidecursor) {
-            glfwSetInputMode(window.w, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    if (window.opt.disablecursor != window.opt.olddisablecursor) {
+        if (window.opt.disablecursor) {
+            glfwSetInputMode(window.w, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         } else {
-            glfwSetInputMode(window.w, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+            if (window.opt.hidecursor != window.opt.oldhidecursor) {
+                if (window.opt.hidecursor) {
+                    glfwSetInputMode(window.w, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+                } else {
+                    glfwSetInputMode(window.w, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                }
+                window.opt.oldhidecursor = window.opt.hidecursor;
+            }
         }
         window.opt.oldhidecursor = window.opt.hidecursor;
     }

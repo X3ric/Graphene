@@ -45,10 +45,12 @@ void GenArrays(){
 #include "utils.c"
 #include "camera.c"
 
-Shader shaderdefault; // Shader program default
+Shader shaderdefault;
+Shader shaderdefaultfont;
 
 void InitializeShader() {
     // Generate Shader default
         shaderdefault = LoadShader("./res/shaders/default.vert","./res/shaders/default.frag");
+        shaderdefaultfont = LoadShader("./res/shaders/default.vert","./res/shaders/font.frag");
         GenArrays();
 }
