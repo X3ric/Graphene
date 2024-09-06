@@ -13,18 +13,18 @@ typedef struct {
 
 typedef struct {
     bool        vsync;
-    bool        oldvsync;
-    bool        fullscreen;
-    bool        oldfullscreen;
-    bool        floating;
-    bool        transparent;
-    bool        decorated;
-    bool        disablecursor;
-    bool        olddisablecursor;
-    bool        hidecursor;
-    bool        oldhidecursor;
     bool        hided;
+    bool        floating;
+    bool        fullscreen;
+    bool        transparent;
+    bool        disablecursor;
+    bool        hidecursor;
+    bool        decorated;
+    bool        oldvsync;
     bool        oldhided;
+    bool        oldfullscreen;
+    bool        oldhidecursor;
+    bool        olddisablecursor;
 } Options;
 
 typedef struct {
