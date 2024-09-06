@@ -14,7 +14,7 @@ cd grafenic
 
 **gamepad** -> ./src/gamepad.c (when ./build run gamepad)
 
-**shader** -> ./src/shader.c (when ./build run shader)
+**image** -> ./src/image.c (when ./build run image)
 
 **cursor** -> ./src/cursor.c (when ./build run cursor)
 
