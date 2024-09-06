@@ -63,7 +63,7 @@ void update(void){
 
 int main(int arglenght, char** args)
 { 
-    WindowInit(1920, 1080, "Grafenic");
+    WindowInit(1920, 1080, "Grafenic - Image");
     custom = LoadShader("./res/shaders/default.vert","./res/shaders/default.frag");
     custom.hotreloading = true;//hotreloading for the shader or put this in the update "shader = ShaderHotReload(shader);" > in this case > "custom = ShaderHotReload(custom);"
     shaderdefault.hotreloading = true;// hot reload on the default pixel shader

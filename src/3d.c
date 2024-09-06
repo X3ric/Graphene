@@ -84,7 +84,7 @@ void update(void) {
 }
 
 int main(int argc, char** argv) {
-    WindowInit(1920, 1080, "Grafenic");
+    WindowInit(1920, 1080, "Grafenic - 3d");
     font = LoadFont("./res/fonts/Monocraft.ttf");font.nearest = true;
     img = LoadImage((ImgInfo){"./res/images/Stone.png", true});
     shaderdefault.hotreloading = true;

@@ -128,7 +128,7 @@ void update(void) {
 }
 
 int main(int argc, char** args) {
-    WindowInit(1920, 1080, "Grafenic");
+    WindowInit(1920, 1080, "Grafenic - Gamepad");
     font = LoadFont("./res/fonts/Monocraft.ttf");
     font.nearest = true;
     LoadJoysticks();

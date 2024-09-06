@@ -339,7 +339,7 @@ bool IsInside(float x, float y, float rectX, float rectY, float rectWidth, float
         struct stat attrib;
         if (stat(filePath, &attrib) != 0) {
             perror("Error getting file modification time");
-            return -1; // or some other error indicator
+            return -1;
         }
         return attrib.st_mtime;
     }
@@ -349,7 +349,6 @@ bool IsInside(float x, float y, float rectX, float rectY, float rectWidth, float
     char* FileLoad(const char* path) {
         FILE* file = fopen(path, "r");
         if (file == NULL) {
-            // File doesn't exist, create it and return an empty string
             file = fopen(path, "w");
             if (file == NULL) {
                 perror("Error opening file for reading/writing");

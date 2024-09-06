@@ -17,19 +17,12 @@ void update(void){
             custom,                        // Shader
             camera,                        // Camera
         });
-    // Input Example
-        //      Key                    MouseButton                      Info
-        // isKey,isKeyReset  // isMouseButton,isMouseButtonReset  // key Bool
-        // isKeyDown,isKeyUp // isMouseButtonDown,isMouseButtonUp // key Press/Relase 
-        // isKeyPressed      //                                   // key Mantain 
-        //if (isKeyPressed("A", 0.06f)) { // Repeat key every 0.06 seconds
-        //    DrawCircle(mouse.x,mouse.y, Scaling(35), (Color){0, 0, 0, 75});
-        //}
-        //if(isKey("V")){ // Change Vsync state
-        //    window.opt.vsync = true;
-        //} else {
-        //    window.opt.vsync = false;
-        //}
+    // Input
+        if(isKey("V")){ // Toggle Vsync
+            window.opt.vsync = true;
+        } else {
+            window.opt.vsync = false;
+        }
     // Easing Lerp
         //int sizeball  = Lerp(0, 50,  Easing(Motion(1.0,0.5), "Linear"));
         //int positionx = Lerp(0, window.screen_width,  Easing(Motion(1.0,1.0), "CubicInOut"));
@@ -58,19 +51,18 @@ void update(void){
         //});
     // Modular ui.c functions
         // Left Text Bar
-            //int texts = 9;
-            //DrawTextColumn(font,1,texts, text("V = vsync state: %s", window.opt.vsync ? "ON" : "OFF"));
-            //DrawTextColumn(font,2,texts, text("Esc = exitbar state: %s", isKey("Esc") ? "ON" : "OFF"));
+            int texts = 16;
+            DrawTextColumn(font,1,texts, text("V = vsync -> %s", window.opt.vsync ? "ON" : "OFF"));
+            DrawTextColumn(font,2,texts, text("Esc = exitbar -> %s", isKey("Esc") ? "ON" : "OFF"));
         //Fps(0, 0, font, Scaling(50));
         ExitPromt(font);  
 }
 
 int main(int arglenght, char** args)
 { 
-    window.opt.disablecursor = true;
-    WindowInit(1920, 1080, "Grafenic");
+    WindowInit(1920, 1080, "Grafenic - Main");
     font = LoadFont("./res/fonts/Monocraft.ttf");font.nearest = true;
-    custom = LoadShader("./res/shaders/default.vert","./res/shaders/fractal.frag");
+    custom = LoadShader("./res/shaders/default.vert","./res/shaders/trip.frag");
     custom.hotreloading = true;shaderdefault.hotreloading = true;
     ClearColor((Color){75, 75, 75,100});
     // Saving how many times you boot
@@ -80,13 +72,13 @@ int main(int arglenght, char** args)
         //printf("Booted times: %s\n", boot);
         ////FileClear(path); // clear all data
     // Audio inizialization
-        //AudioInit();
+        AudioInit();
         // Play a stream with audio
             //AudioPlay("./res/sounds/sound.wav");
         // Load a file edit and play
-            //Sound* sound = SoundLoad("./res/sounds/sound.wav");
-            //SetSoundPitchSemitones(sound,-24.0);
-            //SoundPlay(sound);//SoundStop(sound);
+            Sound* sound = SoundLoad("./res/sounds/sound.wav");
+            SetSoundPitchSemitones(sound,-6.0);
+            SoundPlay(sound);//SoundStop(sound);
     while (!WindowState())
     {
         WindowClear();

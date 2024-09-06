@@ -70,7 +70,7 @@ void update(void){
 
 int main(int arglenght, char** args)
 { 
-    WindowInit(1920, 1080, "Grafenic");
+    WindowInit(1920, 1080, "Grafenic - Cursor");
     font = LoadFont("./res/fonts/Monocraft.ttf");font.nearest = true;
     while (!WindowState())
     {

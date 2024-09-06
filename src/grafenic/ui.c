@@ -1,5 +1,5 @@
 
-void DrawTextRows(Font font,int section,int rows, const char* textContent) { // Text Rows
+void DrawTextRows(Font font,int section,int rows, const char* textContent) {
     int y = window.screen_height / 12;
     int sectionWidth = window.screen_width / rows;
     int fontsize = Scaling(50);
@@ -9,7 +9,7 @@ void DrawTextRows(Font font,int section,int rows, const char* textContent) { // 
     DrawText(textX, textY , font, fontsize, textContent, WHITE);
 } 
 
-void DrawTextColumn(Font font, int section, int totalSections, const char* textContent) { // Text Collumns
+void DrawTextColumn(Font font, int section, int totalSections, const char* textContent) {
     int sectionHeight = window.screen_height / totalSections;
     int fontsize = Scaling(40);
     TextSize textSize = GetTextSize(font, fontsize, textContent);
@@ -29,18 +29,18 @@ void DrawPopUp(const char* title, Font font, int fontsize, int width, int height
     DrawText(textX, textY, font, fontsize, title, WHITE);
 }
 
-void Fps(int x , int y, Font font, int size) { // FPS info
+void Fps(int x , int y, Font font, int size) {
     DrawText( x, y, font, size, text("FPS: %.0f", window.fps), WHITE);
 } 
 
-void ExitPromt(Font font) { // Escape PopUp
+void ExitPromt(Font font) {
     if (isKey("Esc")) {
         DrawPopUp("Quit? y/n",font,Scaling(17),window.screen_width/18, window.screen_height/35);
         if (isKeyDown("Y")) {
             WindowStateSet(true);
         }
         if (isKeyDown("N")) {
-            isKeyReset("Esc"); // inverts isKey("Esc") return
+            isKeyReset("Esc");
         }
     }
 } 

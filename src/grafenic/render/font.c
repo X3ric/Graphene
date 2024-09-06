@@ -3,8 +3,6 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 
-#include <float.h>
-
 typedef struct {
     float x0, y0, x1, y1;  // Coordinates of the glyph in the atlas
     float xoff, yoff;      // Left/top offsets
@@ -89,6 +87,27 @@ Font LoadFont(const char* fontPath) {
     fclose(fp);
     font = GenAtlas(font);
     return font;
+}
+
+typedef struct {
+    int width;
+    int height;
+} TextSize;
+
+TextSize GetTextSize(Font font, float fontSize, const char* text) {
+    if (!font.fontBuffer) return (TextSize){0, 0};
+    TextSize size = {0, 0};
+    float scale = stbtt_ScaleForPixelHeight(&font.fontInfo, fontSize);
+    int ascent, descent;
+    stbtt_GetFontVMetrics(&font.fontInfo, &ascent, &descent, 0); 
+    int max_height = (int)((ascent) * scale);
+    for (size_t i = 0; text[i] != '\0'; ++i) {
+        int advanceWidth, leftSideBearing;
+        stbtt_GetCodepointHMetrics(&font.fontInfo, text[i], &advanceWidth, &leftSideBearing);
+        size.width += (int)(advanceWidth * scale);
+    }
+    size.height = max_height;
+    return size;
 }
 
 void GenerateTextTexture(const char* text, Font font, Color color, GLuint* outTexture, int* outWidth, int* outHeight) {
@@ -177,29 +196,8 @@ void DrawText(int x, int y, Font font, float fontSize, const char* text, Color c
         { x + scaledTextWidth, y + scaledTextHeight, 0.0f }, // Bottom Right
         { x, y, 0.0f },                                      // Top Left
         { x + scaledTextWidth, y, 0.0f },                    // Top Right
-        shaderdefaultfont,                                   // Shader
+        shaderdefault,                                       // Shader
         camera,                                              // Camera
     });
     UnbindTexture();
-}
-
-typedef struct {
-    int width;
-    int height;
-} TextSize;
-
-TextSize GetTextSize(Font font, float fontSize, const char* text) {
-    if (!font.fontBuffer) return (TextSize){0, 0};
-    TextSize size = {0, 0};
-    float scale = stbtt_ScaleForPixelHeight(&font.fontInfo, fontSize);
-    int ascent, descent;
-    stbtt_GetFontVMetrics(&font.fontInfo, &ascent, &descent, 0); 
-    int max_height = (int)((ascent) * scale);
-    for (size_t i = 0; text[i] != '\0'; ++i) {
-        int advanceWidth, leftSideBearing;
-        stbtt_GetCodepointHMetrics(&font.fontInfo, text[i], &advanceWidth, &leftSideBearing);
-        size.width += (int)(advanceWidth * scale);
-    }
-    size.height = max_height;
-    return size;
 }

@@ -79,7 +79,7 @@ void update(void) {
 
 int main(int argc, char** argv) {
     window.fpslimit = 60;
-    WindowInit(1920, 1080, "Grafenic");
+    WindowInit(1920, 1080, "Grafenic - Pong");
     font = LoadFont("./res/fonts/Monocraft.ttf");
     leftPaddle = (Paddle){0,window.screen_height / 2 - PADDLE_HEIGHT / 2, PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_SPEED};
     rightPaddle = (Paddle){window.screen_width - (PADDLE_WIDTH), window.screen_height / 2 - PADDLE_HEIGHT / 2, PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_SPEED};
