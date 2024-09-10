@@ -1,5 +1,5 @@
-#include "grafenic/init.c"
-#include "grafenic/ui.c"
+#include "../window.h"
+#include "modules/ui.c"
 
 Font font;
 Img img;
@@ -18,7 +18,7 @@ Camera cam = {
     0.0f                // Near Distance 
 };
 
-void update(void) {
+void Update(void) {
     // Movement Camera
         double speed;
         double clampz;
@@ -78,7 +78,7 @@ void update(void) {
         cam,                        // Camera
         });
         //window.debug.wireframe = false; //stop debugging
-    // Modular ui.c functions
+    // Modular ui.h functions
         Fps(0, 0, font, Scaling(50));
         ExitPromt(font);  
 }
@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
     shaderdefault.hotreloading = true;
     while (!WindowState()) {
         WindowClear();
-        update();
+        Update();
         WindowProcess();
     }
     WindowClose();

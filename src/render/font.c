@@ -62,7 +62,7 @@ Font GenAtlas(Font font) {
     glBindTexture(GL_TEXTURE_2D, font.textureID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, font.atlasWidth, font.atlasHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, font.atlasData);
     glTexOpt(font.nearest ? GL_NEAREST : GL_LINEAR, GL_CLAMP_TO_EDGE);
-    //stbi_write_jpg("/tmp/atlas.jpg", font.atlasWidth, font.atlasHeight, 4, font.atlasData, font.atlasWidth * 4);
+    stbi_write_jpg("/tmp/atlas.jpg", font.atlasWidth, font.atlasHeight, 4, font.atlasData, font.atlasWidth * 4);
     free(font.atlasData);
     return font;
 }
@@ -123,30 +123,38 @@ void GenerateTextTexture(const char* text, Font font, Color color, GLuint* outTe
     float scale = stbtt_ScaleForPixelHeight(&font.fontInfo, baseFontSize);
     int ascent, descent;
     stbtt_GetFontVMetrics(&font.fontInfo, &ascent, &descent, NULL);
-    int baseTextHeight = (int)((ascent - descent) * scale);
-    int baseTextWidth = 0;
+    int lineHeight = (int)((ascent - descent) * scale);
+    int maxTextWidth = 0;
+    int currentLineWidth = 0;
+    int totalTextHeight = lineHeight;
+    int numLines = 1;
     for (size_t i = 0; text[i] != '\0'; ++i) {
         if (text[i] == '\n') {
-            baseTextWidth = 0;
+            maxTextWidth = (currentLineWidth > maxTextWidth) ? currentLineWidth : maxTextWidth;
+            currentLineWidth = 0;
+            totalTextHeight += lineHeight;
+            numLines++;
             continue;
         }
         int glyphIndex = text[i] - 32;
         if (glyphIndex < 0 || glyphIndex >= MAX_GLYPHS) continue;
         float xAdvance = font.glyphs[glyphIndex].xadvance;
-        baseTextWidth += (int)xAdvance;
+        currentLineWidth += (int)xAdvance;
     }
-    unsigned char* bitmap = (unsigned char*)calloc(baseTextWidth * baseTextHeight * 4, sizeof(unsigned char));
+    maxTextWidth = (currentLineWidth > maxTextWidth) ? currentLineWidth : maxTextWidth;
+    unsigned char* bitmap = (unsigned char*)calloc(maxTextWidth * totalTextHeight * 4, sizeof(unsigned char));
     if (!bitmap) return;
-    int offsetX = 0;
-    int offsetY = 0;
     int offset = 0;
+    int offsetX = 0;
+    int offsetY = totalTextHeight - lineHeight;
     for (size_t i = 0; text[i] != '\0'; ++i) {
         if (text[i] == '\n') {
-            offsetY += baseTextHeight;
+            offsetY -= lineHeight;
             offsetX = 0;
             continue;
         }
         int glyphIndex = text[i] - 32;
+        if (glyphIndex < 0 || glyphIndex >= MAX_GLYPHS) continue;
         float xAdvance = font.glyphs[glyphIndex].xadvance;
         int charWidth = (int)(font.glyphs[glyphIndex].x1 - font.glyphs[glyphIndex].x0);
         int charHeight = (int)(font.glyphs[glyphIndex].y1 - font.glyphs[glyphIndex].y0);
@@ -158,8 +166,8 @@ void GenerateTextTexture(const char* text, Font font, Color color, GLuint* outTe
             for (int k = 0; k < charWidth; ++k) {
                 int bitmap_x = offsetX + k + xoffset;
                 int bitmap_y = offset + offsetY - j - yoffset;
-                if (bitmap_x < 0 || bitmap_x >= baseTextWidth || bitmap_y < 0 || bitmap_y >= baseTextHeight) continue;
-                int pixel = (bitmap_y * baseTextWidth + bitmap_x) * 4;
+                if (bitmap_x < 0 || bitmap_x >= maxTextWidth || bitmap_y < 0 || bitmap_y >= totalTextHeight) continue;
+                int pixel = (bitmap_y * maxTextWidth + bitmap_x) * 4;
                 unsigned char alpha = char_bitmap[j * charWidth + k];
                 bitmap[pixel] = color.r;
                 bitmap[pixel + 1] = color.g;
@@ -170,11 +178,11 @@ void GenerateTextTexture(const char* text, Font font, Color color, GLuint* outTe
         offsetX += (int)xAdvance;
         stbtt_FreeBitmap(char_bitmap, NULL);
     }
-    GLuint newTexture = GetCachedTexture(color, !font.nearest, true, bitmap, baseTextWidth, baseTextHeight);
-    AddToTextCache(newTexture, baseTextWidth, baseTextHeight, text);
+    GLuint newTexture = GetCachedTexture(color, !font.nearest, true, bitmap, maxTextWidth, totalTextHeight);
+    AddToTextCache(newTexture, maxTextWidth, totalTextHeight, text);
     *outTexture = newTexture;
-    *outWidth = baseTextWidth;
-    *outHeight = baseTextHeight;
+    *outWidth = maxTextWidth;
+    *outHeight = totalTextHeight;
     free(bitmap);
 }
 

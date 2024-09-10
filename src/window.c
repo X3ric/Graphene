@@ -28,20 +28,20 @@ typedef struct {
 } Options;
 
 typedef struct {
-    GLFWwindow* w;
-    Debug       debug;
-    char*       title; 
-    int         screen_height;
-    int         screen_width;
-    int         height;
-    int         width;
-    int         refresh_rate;
-    double      deltatime;
-    int         fpslimit;
-    double      fps;
-    int         samples;
-    int         depthbits;
-    Options     opt;
+    GLFWwindow*           w;
+    Debug                 debug;
+    char*                 title; 
+    int                   screen_height;
+    int                   screen_width;
+    int                   height;
+    int                   width;
+    int                   refresh_rate;
+    double                deltatime;
+    int                   fpslimit;
+    double                fps;
+    int                   samples;
+    int                   depthbits;
+    Options               opt;
 } Window;
 
 Window window;
@@ -49,8 +49,7 @@ Window window;
 #include "input.c"
 #include "utils.c"
 #include "audio.c"
-
-#include "render/init.c"
+#include "render/draw.c"
 
 void WindowFrames(){
     static double previousframetime = 0.0;
@@ -89,20 +88,16 @@ void WindowProcess() {
         }
         window.opt.oldfullscreen = window.opt.fullscreen;
     }
-    if (window.opt.disablecursor != window.opt.olddisablecursor) {
-        if (window.opt.disablecursor) {
+    if (window.opt.hidecursor != window.opt.oldhidecursor || window.opt.disablecursor != window.opt.olddisablecursor) {
+        if (window.opt.hidecursor) {
+            glfwSetInputMode(window.w, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        } else if (window.opt.disablecursor) {
             glfwSetInputMode(window.w, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         } else {
-            if (window.opt.hidecursor != window.opt.oldhidecursor) {
-                if (window.opt.hidecursor) {
-                    glfwSetInputMode(window.w, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-                } else {
-                    glfwSetInputMode(window.w, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-                }
-                window.opt.oldhidecursor = window.opt.hidecursor;
-            }
+            glfwSetInputMode(window.w, GLFW_CURSOR, GLFW_CURSOR_NORMAL);            
         }
         window.opt.oldhidecursor = window.opt.hidecursor;
+        window.opt.disablecursor = window.opt.disablecursor;
     }
     if (window.opt.vsync != window.opt.oldvsync) {
         if (window.opt.vsync) {
@@ -130,15 +125,6 @@ void window_buffersize_callback(GLFWwindow* glfw_window, int width, int height)
     window.screen_width = width < MIN_PIXEL ? MIN_PIXEL : width;
     window.screen_height = height < MIN_PIXEL ? MIN_PIXEL : height;
     glViewport(0, 0, (GLsizei)window.screen_width, (GLsizei)window.screen_height);
-}
-
-void update(void);
-
-void window_refresh_callback(GLFWwindow* window)
-{
-    WindowClear();
-    update();
-    WindowProcess();   
 }
 
 int WindowInit(int width, int height, char* title)
@@ -181,7 +167,6 @@ int WindowInit(int width, int height, char* title)
     glfwSetKeyCallback(window.w, KeyCallback);
     glfwSetScrollCallback(window.w, ScrollCallback);
     glfwSetFramebufferSizeCallback(window.w, window_buffersize_callback);
-    glfwSetWindowRefreshCallback(window.w, window_refresh_callback);
     printf("Renderer: %s\n", glGetString(GL_RENDERER));
     printf("OpenGL version supported %s\n", glGetString(GL_VERSION));
     GLenum err = glewInit();
@@ -221,10 +206,7 @@ void WindowClose()
 {
     print("Exit\n");
     AudioStop();
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    glDeleteProgram(shaderdefault.Program);
+    TerminateShader();
     glfwDestroyWindow(window.w);
     glfwTerminate();
 }

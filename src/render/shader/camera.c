@@ -1,4 +1,3 @@
-#include "../math.c"
 
 typedef struct {
     Vec3 position;
@@ -7,21 +6,32 @@ typedef struct {
 } Transform;
 
 typedef struct {
-    Transform  transform;
-    float      fov;
-    float      far;
-    float      near;
+    Transform transform;
+    float fov;
+    float far;
+    float near;
 } Camera;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+
+Camera camera = {
+    {
+    0.0f, 0.0f, 0.0f,   // Position: x, y, z
+    0.0f, 0.0f, 0.0f,   // LocalPosition: x, y, z
+    0.0f, 0.0f, 0.0f,   // Rotation: x, y, z
+    },
+    0.0f,               // Fov
+    0.0f,               // Near Distance
+    0.0f                // Far Distance
+};
+
 typedef struct {
-    Camera     cam;
-    Shader     shader;
-    GLfloat   *vertices;
-    GLuint    *indices;
-    GLfloat    size_vertices;
-    GLfloat    size_indices;
-    Transform  transform;
-    bool       is3d;
+    Camera cam;
+    Shader shader;
+    GLfloat *vertices;
+    GLuint *indices;
+    GLfloat size_vertices;
+    GLfloat size_indices;
+    Transform transform;
+    bool is3d;
 } ShaderObject;
 
 void CalculateProjections(ShaderObject obj, GLfloat *Model, GLfloat *Projection, GLfloat *View) {
@@ -140,7 +150,7 @@ typedef struct {
     Vec3 vert1;
     Vec3 vert2;
     Shader shader;
-    Camera    cam;
+    Camera cam;
 } TriangleObject;
 
 void Triangle(TriangleObject triangle) {
@@ -174,57 +184,6 @@ void Triangle(TriangleObject triangle) {
     */
     GLuint indices[] = {0, 1, 2};
     RenderShader((ShaderObject){triangle.cam, triangle.shader, vertices, indices, sizeof(vertices), sizeof(indices), triangle.cam.transform});
-}
-
-typedef struct {
-    Vec3 vert0;  // Bottom Left
-    Vec3 vert1;  // Bottom Right
-    Vec3 vert2;  // Top Left
-    Vec3 vert3;  // Top Right
-    Shader shader;
-    Camera    cam;
-} RectObject;
-
-void Rect(RectObject rect) {
-    GLfloat ndcX0, ndcY0, ndcX1, ndcY1, ndcX2, ndcY2, ndcX3, ndcY3;
-    if (rect.cam.fov > 0.0f) { // Perspective projection
-        ndcX0 = 1.0f - 2.0f * rect.vert0.x / window.screen_width;
-        ndcY0 = 1.0f - 2.0f * rect.vert0.y / window.screen_height;
-        ndcX1 = 1.0f - 2.0f * rect.vert1.x / window.screen_width;
-        ndcY1 = 1.0f - 2.0f * rect.vert1.y / window.screen_height;
-        ndcX2 = 1.0f - 2.0f * rect.vert2.x / window.screen_width;
-        ndcY2 = 1.0f - 2.0f * rect.vert2.y / window.screen_height;
-        ndcX3 = 1.0f - 2.0f * rect.vert3.x / window.screen_width;
-        ndcY3 = 1.0f - 2.0f * rect.vert3.y / window.screen_height;
-    } else { // Orthographic projection
-        ndcX0 = rect.vert0.x;
-        ndcY0 = rect.vert0.y;
-        ndcX1 = rect.vert1.x;
-        ndcY1 = rect.vert1.y;
-        ndcX2 = rect.vert2.x;
-        ndcY2 = rect.vert2.y;
-        ndcX3 = rect.vert3.x;
-        ndcY3 = rect.vert3.y;
-    }
-    GLfloat vertices[] = {
-        // Bottom-left triangle
-        ndcX0, ndcY0, rect.vert0.z, 0.0f, 0.0f,
-        ndcX1, ndcY1, rect.vert1.z, 1.0f, 0.0f,
-        ndcX2, ndcY2, rect.vert2.z, 0.0f, 1.0f,
-        // Top-right triangle
-        ndcX1, ndcY1, rect.vert1.z, 1.0f, 0.0f,
-        ndcX3, ndcY3, rect.vert3.z, 1.0f, 1.0f,
-        ndcX2, ndcY2, rect.vert2.z, 0.0f, 1.0f
-    };
-    /*
-        0-------1/4
-        |     / |
-        |   /   |
-        | /     |
-      2/5-------3 
-    */              
-    GLuint indices[] = {0, 1, 2, 3, 4, 5};
-    RenderShader((ShaderObject){rect.cam, rect.shader, vertices, indices, sizeof(vertices), sizeof(indices), rect.cam.transform});
 }
 
 void Zelda(TriangleObject triangle) {
@@ -285,10 +244,61 @@ void Zelda(TriangleObject triangle) {
 }
 
 typedef struct {
+    Vec3 vert0;  // Bottom Left
+    Vec3 vert1;  // Bottom Right
+    Vec3 vert2;  // Top Left
+    Vec3 vert3;  // Top Right
+    Shader shader;
+    Camera cam;
+} RectObject;
+
+void Rect(RectObject rect) {
+    GLfloat ndcX0, ndcY0, ndcX1, ndcY1, ndcX2, ndcY2, ndcX3, ndcY3;
+    if (rect.cam.fov > 0.0f) { // Perspective projection
+        ndcX0 = 1.0f - 2.0f * rect.vert0.x / window.screen_width;
+        ndcY0 = 1.0f - 2.0f * rect.vert0.y / window.screen_height;
+        ndcX1 = 1.0f - 2.0f * rect.vert1.x / window.screen_width;
+        ndcY1 = 1.0f - 2.0f * rect.vert1.y / window.screen_height;
+        ndcX2 = 1.0f - 2.0f * rect.vert2.x / window.screen_width;
+        ndcY2 = 1.0f - 2.0f * rect.vert2.y / window.screen_height;
+        ndcX3 = 1.0f - 2.0f * rect.vert3.x / window.screen_width;
+        ndcY3 = 1.0f - 2.0f * rect.vert3.y / window.screen_height;
+    } else { // Orthographic projection
+        ndcX0 = rect.vert0.x;
+        ndcY0 = rect.vert0.y;
+        ndcX1 = rect.vert1.x;
+        ndcY1 = rect.vert1.y;
+        ndcX2 = rect.vert2.x;
+        ndcY2 = rect.vert2.y;
+        ndcX3 = rect.vert3.x;
+        ndcY3 = rect.vert3.y;
+    }
+    GLfloat vertices[] = {
+        // Bottom-left triangle
+        ndcX0, ndcY0, rect.vert0.z, 0.0f, 0.0f,
+        ndcX1, ndcY1, rect.vert1.z, 1.0f, 0.0f,
+        ndcX2, ndcY2, rect.vert2.z, 0.0f, 1.0f,
+        // Top-right triangle
+        ndcX1, ndcY1, rect.vert1.z, 1.0f, 0.0f,
+        ndcX3, ndcY3, rect.vert3.z, 1.0f, 1.0f,
+        ndcX2, ndcY2, rect.vert2.z, 0.0f, 1.0f
+    };
+    /*
+        0-------1/4
+        |     / |
+        |   /   |
+        | /     |
+      2/5-------3 
+    */              
+    GLuint indices[] = {0, 1, 2, 3, 4, 5};
+    RenderShader((ShaderObject){rect.cam, rect.shader, vertices, indices, sizeof(vertices), sizeof(indices), rect.cam.transform});
+}
+
+typedef struct {
     Transform transform;
-    int       size;
-    Shader    shader;
-    Camera    cam;
+    int size;
+    Shader shader;
+    Camera cam;
 } CubeObject;
 
 void Cube(CubeObject cube) {
@@ -340,4 +350,3 @@ void Cube(CubeObject cube) {
     };
     RenderShader((ShaderObject){cube.cam, cube.shader, vertices, indices, sizeof(vertices), sizeof(indices), cube.transform, true});
 }
-

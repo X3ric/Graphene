@@ -1,13 +1,6 @@
-Camera camera = {
-    {
-    0.0f, 0.0f, 0.0f,   // Position: x, y, z
-    0.0f, 0.0f, 0.0f,   // LocalPosition: x, y, z
-    0.0f, 0.0f, 0.0f,   // Rotation: x, y, z
-    },
-    0.0f,               // Fov
-    0.0f,               // Near Distance
-    0.0f                // Far Distance
-};
+#include "shader/init.c"
+#include "color.c"
+#include "cache.c"
 
 void DrawRect(int x, int y, int width, int height, Color color) {
     if (color.a == 0) color.a = 255;

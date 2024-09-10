@@ -1,3 +1,4 @@
+
 typedef struct {
     GLuint Program;
     const char* vertex;
@@ -7,13 +8,21 @@ typedef struct {
     bool hotreloading;
 } Shader;
 
-GLuint VAO;           // Vertex Array Object
-GLuint VBO;           // Vertex Buffer Object
-GLuint EBO;           // Index Buffer Object
+GLuint VAO;
+GLuint VBO;
+GLuint EBO;
 
 #define FLOAT_PER_VERTEX 5
 
-void GenArrays(){
+Shader shaderdefault;
+
+#include "utils.c"
+#include "math.c"
+#include "camera.c"
+
+void InitializeShader() {
+    // Generate Shader default
+        shaderdefault = LoadShader("./res/shaders/default.vert","./res/shaders/default.frag");
     // Generate VAO, VBO, and EBO
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);
@@ -42,13 +51,9 @@ void GenArrays(){
         glBindVertexArray(0);
 }
 
-#include "utils.c"
-#include "camera.c"
-
-Shader shaderdefault;
-
-void InitializeShader() {
-    // Generate Shader default
-        shaderdefault = LoadShader("./res/shaders/default.vert","./res/shaders/default.frag");
-        GenArrays();
+void TerminateShader(void){
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
+    glDeleteProgram(shaderdefault.Program);   
 }

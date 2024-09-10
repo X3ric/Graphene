@@ -1,3 +1,10 @@
+typedef struct {
+    GLubyte r;
+    GLubyte g;
+    GLubyte b;
+    GLubyte a;
+} Color;
+
 #define LIGHTGRAY  (Color){ 200, 200, 200}   // Light Gray
 #define GRAY       (Color){ 130, 130, 130}   // Gray
 #define DARKGRAY   (Color){ 80, 80, 80}      // Dark Gray
@@ -15,21 +22,14 @@
 #define DARKBLUE   (Color){ 0, 82, 172}      // Dark Blue
 #define PURPLE     (Color){ 200, 122, 255}   // Purple
 #define VIOLET     (Color){ 135, 60, 190}    // Violet
-#define DARKPURPLE (Color){ 112, 31, 126}    // Dark Purple
+#define DARKPURPLE   (Color){ 112, 31, 126}    // Dark Purple
 #define BEIGE      (Color){ 211, 176, 131}   // Beige
 #define BROWN      (Color){ 127, 106, 79}    // Brown
-#define DARKBROWN  (Color){ 76, 63, 47}      // DarkBrown
+#define DARKBROWN    (Color){ 76, 63, 47}      // Dark Brown
 #define WHITE      (Color){ 255, 255, 255}   // White
 #define BLACK      (Color){ 0, 0, 0}         // Black
 #define MAGENTA    (Color){ 255, 0, 255}     // Magenta
-#define BLANK      (Color){ 0, 0, 0}         // Blank (Transparent)
-
-typedef struct {
-    GLubyte r;
-    GLubyte g;
-    GLubyte b;
-    GLubyte a;
-} Color;
+#define BLANK        (Color){ 0, 0, 0}         // Blank (Transparent)
 
 Color HexToColor(const char* hex) {
     Color color;

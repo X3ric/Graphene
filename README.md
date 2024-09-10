@@ -8,20 +8,6 @@ cd grafenic
 ./build run
 </pre>
 
-### Examples
-
-**main** -> ./src/main.c (default when ./build run)
-
-**gamepad** -> ./src/gamepad.c (when ./build run gamepad)
-
-**image** -> ./src/image.c (when ./build run image)
-
-**cursor** -> ./src/cursor.c (when ./build run cursor)
-
-**pong** -> ./src/pong.c (when ./build run pong)
-
-**3d** -> ./src/3d.c (when ./build run 3d)
-
 <details>
 <summary><h3>Variables</h3></summary>
 
@@ -102,55 +88,6 @@ cd grafenic
 <tr><td><img src="https://via.placeholder.com/50x30/FF00FF"></td><td>MAGENTA (Color){ 255, 0, 255}</td></tr>
 <tr><td></td><td>BLANK (Color){ 0, 0, 0, 0}</td></tr>
 </table>
-</details>
-
-<details>
-<summary><h3>Todo</h3></summary>
-
-**Collision Detection**: Implement collision detection for 3D objects.
-
-**3D Model Importer**: Develop functionality to import various 3D model formats.
-
-**Cubemap**: Add support for cubemap textures for environment mapping.
-
-**Lights & Shadows**: Implement dynamic lighting and shadow effects.
-
-**Camera Rotation on 3D Objects**: Enable camera rotation functionality for 3D objects, such as cubes.
-
-**Shadows**: Implement various shadow techniques like shadow mapping or shadow volumes.
-
-**Skeletal Animations**: Implement skeletal animations for character movement and deformation.
-
-**Geometry Culling**: Optimize rendering by excluding objects not in the camera’s view.
-
-**Level of Detail (LOD)**: Implement LOD to adjust model detail based on distance from the camera.
-
-**Physically-Based Rendering (PBR)**: Use PBR to simulate realistic materials with properties like albedo, roughness, and metalness.
-
-**Normal Mapping**: Enhance surface detail by using normal maps to simulate complex textures.
-
-**Image-Based Lighting (IBL)**: Use precomputed environment maps for realistic lighting and reflections.
-
-**Global Illumination**: Implement techniques like radiosity or path tracing for realistic indirect lighting.
-
-**Spherical Harmonics**: Use spherical harmonics to represent and compute complex lighting environments.
-
-**Surface Scattering**: Simulate light scattering beneath surfaces for materials like skin and wax.
-
-**Volumetric Rendering**: Render effects like fog, smoke, or clouds with techniques such as ray marching.
-
-**Parallax Mapping**: Simulate depth and surface detail by adjusting texture coordinates based on viewing angles.
-
-**Reflection**: Implement various reflection techniques such as cube maps or screen-space reflections.
-
-**Refraction**: Simulate light bending as it passes through transparent materials.
-
-**Diffraction**: Simulate the bending of light around edges or through small openings.
-
-**Ambient Occlusion**: Implement ambient occlusion to add depth and realism by darkening crevices and occluded areas.
-
-**Bindless Textures**: Use bindless texture handles to efficiently manage and access a large number of textures in shaders.
-
 </details>
 
 </p><a href="https://archlinux.org"><img alt="Arch Linux" src="https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=arch-linux&logoColor=D9E0EE&color=000000&labelColor=97A4E2"/></a><br>

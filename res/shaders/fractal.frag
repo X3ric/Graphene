@@ -8,8 +8,8 @@ in vec2 texCoord;              // Texture coordinate from vertex shader
 out vec4 fragColor;            // Output color
 
 #define AA 2                   // Anti-aliasing factor
-#define ZOOM_SPEED 1.0         // Speed of zooming (higher values = faster zoom)
-#define ZOOM_EXPONENT 1.0      // Exponent for zoom (affects zoom rate)
+#define ZOOM_SPEED 15.0        // Speed of zooming (higher values = faster zoom)
+#define ZOOM_EXPONENT 1.00     // Exponent for zoom (affects zoom rate)
 #define SENSITIVITY_BASE 1.0   // Base sensitivity value (affects mouse sensitivity scaling)
 #define SENSITIVITY_SCALE 0.5  // Sensitivity scaling factor (affects how sensitivity decreases with zoom)
 #define SMOOTH 1.0             // Smooth factor for Mandelbrot set rendering
@@ -40,7 +40,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 col = vec3(0.0);
     vec2 mouseNormalized = vec2(iMouse.x / iResolution.x - 0.5, iMouse.y / iResolution.y - 0.5) * 2.0;
     mouseNormalized.y = -mouseNormalized.y;
-    float zoomFactor = 1.0 + ZOOM_SPEED * iTime;
+    float zoomFactor = ZOOM_SPEED * iTime;
     float zoom = pow(zoomFactor, ZOOM_EXPONENT);
     vec2 zoomCenter = mouseNormalized;
     #if AA > 1

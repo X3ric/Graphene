@@ -1,5 +1,3 @@
-// Texture Cache
-
 typedef struct {
     GLuint texture;
     Color color;
@@ -7,6 +5,21 @@ typedef struct {
     bool linear;
     bool isBitmap;
 } CachedTexture;
+
+typedef struct {
+    GLuint texture;
+    int width;
+    int height;
+    char* text;
+} TextCacheEntry;
+
+typedef struct {
+    TextCacheEntry* entries;
+    size_t size;
+    size_t capacity;
+} TextCache;
+
+// Texture Cache
 
 static CachedTexture* textureCache = NULL;
 static size_t cacheSize = 0;
@@ -71,19 +84,6 @@ void CleanUpTextureCache() {
 
 
 // Text Cache
-
-typedef struct {
-    GLuint texture;
-    int width;
-    int height;
-    char* text;
-} TextCacheEntry;
-
-typedef struct {
-    TextCacheEntry* entries;
-    size_t size;
-    size_t capacity;
-} TextCache;
 
 static TextCache* textCache = NULL;
 

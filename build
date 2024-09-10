@@ -1,43 +1,82 @@
 #!/bin/bash
+
 CC="gcc"
 CFLAGS="-I./deps -I./src"
-LDFLAGS="-lglfw -lGL -lpthread -lGLEW -lm -ldl"
-TARGET="./grafenic"
-if [ -z "$2" ]; then
-	SOURCES="./src/main.c"
-else
-	SOURCES="./src/$2.c"
-fi
+LDFLAGS="-lglfw -lGL -lpthread -lGLEW -lm"
+TARGET="grafenic"
+
 clean() {
-    echo -e "rm -f $TARGET"
-    rm -f "$TARGET"
+    echo -e "rm -rf ./$TARGET ./libgrafenic.so ./src/window.o"
+    rm -rf ./$TARGET ./libgrafenic.so ./src/window.o
 }
+
 build() {
     clean
-    echo -e "$CC $CFLAGS $SOURCES -o $TARGET $LDFLAGS"
-    $CC $CFLAGS $SOURCES -o $TARGET $LDFLAGS
+    if [ -z "$1" ]; then
+        SOURCES="./src/examples/main.c"
+    else
+        SOURCES="./src/examples/$1.c"
+    fi
+
+    echo -e "$CC $CFLAGS -fPIC -c src/window.c -o window.o"
+    $CC $CFLAGS -fPIC -c src/window.c -o window.o
+
+    echo -e "$CC -shared -o libgrafenic.so window.o $LDFLAGS"
+    $CC -shared -o libgrafenic.so window.o $LDFLAGS
+    
+    if [ -f "/usr/local/lib/libgrafenic.so" ]; then
+        export LD_LIBRARY_PATH=./:$LD_LIBRARY_PATH
+        echo -e "$CC $SOURCES -o $TARGET -lgrafenic $LDFLAGS"
+        $CC $SOURCES -o $TARGET -lgrafenic $LDFLAGS
+    else 
+        export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+        echo -e "$CC $SOURCES -o $TARGET -lgrafenic $LDFLAGS"
+        $CC $SOURCES -o $TARGET -lgrafenic $LDFLAGS
+    fi
 }
+
+install() {
+    sudo mkdir -p /usr/local/include/grafenic
+    sudo cp -r ./src/window.h /usr/local/include/grafenic/
+    sudo cp -r ./deps/* /usr/local/include/
+    sudo cp libgrafenic.so /usr/local/lib/
+    sudo ldconfig
+}
+
+uninstall() {
+    sudo rm -f /usr/local/lib/libgrafenic.so
+    sudo rm -rf /usr/local/include/grafenic
+}
+
 run() {
-    build "$SOURCES"
-    $TARGET
+    build $1
+    ./"$TARGET"
 }
+
 debug() {
     CC="gcc -g"
-    build "$SOURCES"
+    build $1
     gdb -q $TARGET --eval-command=run
 }
+
 case $1 in
     run)
-        run
+        run $2
         ;;
     debug)
-        debug
+        debug $2
         ;;
     clean)
         clean
         ;;
+    install)
+        install $2
+        ;;
+    uninstall)
+        uninstall
+        ;;
     *)
-        echo "Usage: $0 {run|debug|clean} [source_file_name]"
+        echo "Usage: $0 {install|uninstall||run|debug|clean}"
         exit 1
         ;;
 esac

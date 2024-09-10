@@ -1,5 +1,5 @@
-#include "grafenic/init.c"
-#include "grafenic/ui.c"
+#include "../window.h"
+#include "modules/ui.c"
 
 Font font;
 
@@ -110,23 +110,6 @@ void DrawGamepadInfo(int x, int y, int jid) {
     y += Scaling(30);
 }
 
-void update(void) {
-    int x = Scaling(10);
-    int y = Scaling(10);
-    bool anyGamepadFound = false;
-    for (int i = 0; i < joystick_count; i++) {
-        if (isGamepadConnected(joysticks[i])) {
-            anyGamepadFound = true;
-            DrawGamepadInfo(x, y, joysticks[i]);
-        }
-    }
-    if (!anyGamepadFound) {
-        DrawText(x, y, font, Scaling(24), "No Gamepad Found", RED);
-    }
-    // Modular ui.c functions
-        ExitPromt(font);  
-}
-
 int main(int argc, char** args) {
     WindowInit(1920, 1080, "Grafenic - Gamepad");
     font = LoadFont("./res/fonts/Monocraft.ttf");
@@ -135,7 +118,21 @@ int main(int argc, char** args) {
     ClearColor((Color){75, 75, 75, 100});
     while (!WindowState()) {
         WindowClear();
-        update();
+        // Gamepad Visual
+            int x = Scaling(10);
+            int y = Scaling(10);
+            bool anyGamepadFound = false;
+            for (int i = 0; i < joystick_count; i++) {
+                if (isGamepadConnected(joysticks[i])) {
+                    anyGamepadFound = true;
+                    DrawGamepadInfo(x, y, joysticks[i]);
+                }
+            }
+            if (!anyGamepadFound) {
+                DrawText(x, y, font, Scaling(24), "No Gamepad Found", RED);
+            }
+        // Modular ui.h functions
+            ExitPromt(font);  
         WindowProcess();
     }
     WindowClose();
