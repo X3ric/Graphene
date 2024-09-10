@@ -12,21 +12,21 @@ void Draw2DAxes(int x, int y, int jid, int width, int height) {
     const int limitCircleRadius = Scaling(45);
     const int indicatorCircleRadius = Scaling(15);
     const int labelSpacing = Scaling(3);
-    bool l3Pressed = isGamepadButtonDown(jid,"L3");
-    bool r3Pressed = isGamepadButtonDown(jid,"R3");
+    bool l3Pressed = IsGamepadButtonDown(jid,"L3");
+    bool r3Pressed = IsGamepadButtonDown(jid,"R3");
     bool isAnyButtonPressed = l3Pressed || r3Pressed;
     Color pointerColor = isAnyButtonPressed ? GREEN : GRAY;
     for (size_t group = 0; group < sizeof(axisGroups) / sizeof(axisGroups[0]); group++) {
         int groupX = x  + group * (width + Scaling(50));
         int groupY = y;
-        bool l3Pressed = isGamepadButtonDown(jid, "L3");
-        bool r3Pressed = isGamepadButtonDown(jid, "R3");
+        bool l3Pressed = IsGamepadButtonDown(jid, "L3");
+        bool r3Pressed = IsGamepadButtonDown(jid, "R3");
         bool isAnyButtonPressed = (group == 0 && l3Pressed) || (group == 1 && r3Pressed);
         Color pointerColor = isAnyButtonPressed ? GREEN : GRAY;
         DrawCircle(groupX + width / 2, groupY + height / 2, limitCircleRadius, LIGHTGRAY);
         DrawCircleBorder(groupX + width / 2, groupY + height / 2, limitCircleRadius, circleBorderThickness, (Color){255,255,255,120});
-        float xValue = GamepadAxis(jid, axisGroups[group][0]);
-        float yValue = GamepadAxis(jid, axisGroups[group][1]);
+        float xValue = GetGamepadAxis(jid, axisGroups[group][0]);
+        float yValue = GetGamepadAxis(jid, axisGroups[group][1]);
         xValue = xValue < -1.0f ? -1.0f : (xValue > 1.0f ? 1.0f : xValue);
         yValue = yValue < -1.0f ? -1.0f : (yValue > 1.0f ? 1.0f : yValue);
         int centerX = groupX + width / 2;
@@ -53,7 +53,7 @@ void DrawTriggers(int x, int y, int jid, int width, int height) {
         "LT", "RT"
     };
     for (size_t t = 0; t < sizeof(triggerNames) / sizeof(triggerNames[0]); t++) {
-        float triggerValue = GamepadAxis(jid, triggerNames[t]);
+        float triggerValue = GetGamepadAxis(jid, triggerNames[t]);
         triggerValue = triggerValue < 0.0f ? 0.0f : (triggerValue > 1.0f ? 1.0f : triggerValue);
         int triggerBarHeight = (int)(height * triggerValue);
         char buffer[256];
@@ -76,7 +76,7 @@ void DrawTriggers(int x, int y, int jid, int width, int height) {
 }
 
 void DrawGamepadInfo(int x, int y, int jid) {
-    if (!isGamepadConnected(jid)) return;
+    if (!IsGamepadConnected(jid)) return;
     char buffer[256];
     const char* joystickName = GetJoystickName(jid);
     // Gamepad Info
@@ -101,7 +101,7 @@ void DrawGamepadInfo(int x, int y, int jid) {
     };
     x += Scaling(30);
     for (int b = 0; b < sizeof(buttonNames) / sizeof(buttonNames[0]); b++) {
-        snprintf(buffer, sizeof(buffer), "%s: %s", buttonNames[b], isGamepadButtonDown(jid, buttonNames[b]) ? "Pressed" : "Released");
+        snprintf(buffer, sizeof(buffer), "%s: %s", buttonNames[b], IsGamepadButtonDown(jid, buttonNames[b]) ? "Pressed" : "Released");
         
         DrawText(x, y, font, Scaling(20), buffer, WHITE);
         y += Scaling(20);
@@ -122,10 +122,12 @@ int main(int argc, char** args) {
             int x = Scaling(10);
             int y = Scaling(10);
             bool anyGamepadFound = false;
-            for (int i = 0; i < joystick_count; i++) {
-                if (isGamepadConnected(joysticks[i])) {
+            JoystickManager joystickmanager = GetJoysticks();
+            for (int i = 0; i < joystickmanager.count; i++) {
+                int joystick = joystickmanager.joysticks[i];
+                if (IsGamepadConnected(joystick)) {
                     anyGamepadFound = true;
-                    DrawGamepadInfo(x, y, joysticks[i]);
+                    DrawGamepadInfo(x, y, joystick);
                 }
             }
             if (!anyGamepadFound) {

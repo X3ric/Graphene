@@ -5,7 +5,8 @@
 <pre>
 git clone https://github.com/x3ric/grafenic
 cd grafenic
-./build run
+chmod +x make
+./make run
 </pre>
 
 <details>

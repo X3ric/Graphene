@@ -69,33 +69,38 @@ extern Window window;
     extern Mouse mouse;
 
     // Key handling
-    int KeyChar(const char* character);
-    int isKeyDown(const char* character);
-    int isKeyUp(const char* character);
-    bool isKeyPressed(const char* character, double interval);
-    int isKey(const char* character);
-    void isKeyReset(const char* character);
-
-    // Character and Key callbacks
-    void CharCallback(GLFWwindow* glfw_window, unsigned int codepoint);
-    void KeyCallback(GLFWwindow* glfw_window, int key, int scancode, int action, int mods);
-
+        int KeyChar(const char* character);
+        int isKeyDown(const char* character);
+        int isKeyUp(const char* character);
+        bool isKeyPressed(const char* character, double interval);
+        int isKey(const char* character);
+        void isKeyReset(const char* character);
     // Mouse handling
-    Mouse MouseInit();
-    void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
-    void SetCursorPos(float x, float y);
-    int isMouseButtonDown(int button);
-    int isMouseButtonUp(int button);
-    int isMouseButton(const int button);
-    void isMouseButtonReset(const int button);
-
+        Mouse MouseInit();
+        void SetCursorPos(float x, float y);
+        int isMouseButtonDown(int button);
+        int isMouseButtonUp(int button);
+        int isMouseButton(const int button);
+        void isMouseButtonReset(const int button);
     // Gamepad and Joystick handling
-    void LoadJoysticks(void);
-    bool isGamepadConnected(int gamepadId);
-    int isGamepadButtonDown(int gamepadId, const char* buttonName);
-    int isGamepadButtonUp(int gamepadId, const char* buttonName);
-    int isGamepadButton(const char* character);
 
+        #define MAX_JOYSTICKS (GLFW_JOYSTICK_LAST + 1)
+
+        typedef struct {
+            int joysticks[MAX_JOYSTICKS];
+            int count;
+        } JoystickManager;
+
+        void LoadJoysticks(void);
+        JoystickManager GetJoysticks(void);
+        const char* GetJoystickName(int jid);
+        bool IsGamepadConnected(int gamepadId);
+        int IsGamepadButtonDown(int gamepadId, const char* buttonName);
+        int IsGamepadButtonUp(int gamepadId, const char* buttonName);
+        int IsGamepadButton(const char* character);
+        void ResetGamepadButton(const char* character);
+        int GetGamepadAxisValue(const char* axisName);
+        float GetGamepadAxis(int gamepadId, const char* axisName);
 // UTILS
     #include <ctype.h>
     #include <stdarg.h>
@@ -118,11 +123,9 @@ extern Window window;
 
     // Error handling
     void ErrorCallback(int error, const char* description);
-
     // Console functions
     void ClearOutput();
     void print(const char* format, ...);
-
     // Text manipulation
     const char* text(const char* format, ...);
     int textint(char *str);
@@ -137,40 +140,31 @@ extern Window window;
     int textfindindex(const char *text, const char *find);
     const char *textupper(const char *text);
     const char *textlower(const char *text);
-
     // Random number generation
     void RandomSeed(unsigned int seed);
     int RandomValue(int min, int max);
-
     // Utility functions
     void OpenURL(const char *url);
     void SetClipboardText(const char *text);
     char *GetClipboardText(void);
-
     // Basic utilities
     int Clamp(int value, int min, int max);
-
     // Smoothing functions
     float Easing(float t, const char *text);
     float Motion(float speed, float intensity);
     float Lerp(float start, float end, float t);
-
     // Time functions
     double GetTime();
     void SetTime(double time);
     bool Wait(double delaySeconds);
-
     // Collision checking
     bool IsInside(float x, float y, float rectX, float rectY, float rectWidth, float rectHeight);
-
     // Ratio resize
     int Scaling(int fontsize);
-
     // File checks
     bool DirExists(const char* path);
     bool FileExists(const char* filename);
     time_t GetFileModTime(const char* filePath);
-
     // File saving
     char* FileLoad(const char* path);
     char* FileSave(const char* path, const char* text);
@@ -268,23 +262,22 @@ extern Window window;
 
     extern Shader shaderdefault;
 
-    // Shader Utils
-    GLuint CompileShader(const char* shaderSource, GLenum type);
-    const char* LoadShaderText(const char* filepath);
-    GLuint LinkShaders(const char* vertex, const char* fragment);
-    Shader LoadShader(const char* vertex, const char* fragment);
-    Shader ShaderHotReload(Shader shader);
-    void DeleteShader(Shader shader);
-
-    // OpenGL Utils
-    void UnbindTexture();
-    void glTexOpt(GLint filter, GLint warp);
-    GLint GLuint1i(Shader shader, const char* var, float in);
-    GLint GLuint1f(Shader shader, const char* var, float in);
-    GLint GLuint2f(Shader shader, const char* var, float in1, float in2);
-    GLint GLuint3f(Shader shader, const char* var, float in1, float in2, float in3);
-    GLint GLumatrix4fv(Shader shader, const char* var, GLfloat* in);
-
+    // SHADER UTILS
+        // Shader Utils
+            GLuint CompileShader(const char* shaderSource, GLenum type);
+            const char* LoadShaderText(const char* filepath);
+            GLuint LinkShaders(const char* vertex, const char* fragment);
+            Shader LoadShader(const char* vertex, const char* fragment);
+            Shader ShaderHotReload(Shader shader);
+            void DeleteShader(Shader shader);
+        // OpenGL Utils
+            void UnbindTexture();
+            void glTexOpt(GLint filter, GLint warp);
+            GLint GLuint1i(Shader shader, const char* var, float in);
+            GLint GLuint1f(Shader shader, const char* var, float in);
+            GLint GLuint2f(Shader shader, const char* var, float in1, float in2);
+            GLint GLuint3f(Shader shader, const char* var, float in1, float in2, float in3);
+            GLint GLumatrix4fv(Shader shader, const char* var, GLfloat* in);
     // SHADER MATH
         void MatrixIdentity(GLfloat* out);
         void MatrixMultiply(const GLfloat* a, const GLfloat* b, GLfloat* result);
@@ -366,7 +359,6 @@ extern Window window;
         GLubyte a;
     } Color;
 
-    // Define colors
     #define LIGHTGRAY  (Color){ 200, 200, 200}   // Light Gray
     #define GRAY       (Color){ 130, 130, 130}   // Gray
     #define DARKGRAY   (Color){ 80, 80, 80}      // Dark Gray
@@ -384,21 +376,19 @@ extern Window window;
     #define DARKBLUE   (Color){ 0, 82, 172}      // Dark Blue
     #define PURPLE     (Color){ 200, 122, 255}   // Purple
     #define VIOLET     (Color){ 135, 60, 190}    // Violet
-    #define DARKPURPLE (Color){ 112, 31, 126}    // Dark Purple
+    #define DARKPURPLE   (Color){ 112, 31, 126}    // Dark Purple
     #define BEIGE      (Color){ 211, 176, 131}   // Beige
     #define BROWN      (Color){ 127, 106, 79}    // Brown
-    #define DARKBROWN  (Color){ 76, 63, 47}      // Dark Brown
+    #define DARKBROWN    (Color){ 76, 63, 47}      // Dark Brown
     #define WHITE      (Color){ 255, 255, 255}   // White
     #define BLACK      (Color){ 0, 0, 0}         // Black
     #define MAGENTA    (Color){ 255, 0, 255}     // Magenta
-    #define BLANK      (Color){ 0, 0, 0}         // Blank (Transparent)
+    #define BLANK        (Color){ 0, 0, 0}         // Blank (Transparent)
 
-    // Function declarations
     Color HexToColor(const char* hex);
     void glColor(Color color);
     void ClearColor(Color color);
 // CACHE
-    // CachedTexture structure
     typedef struct {
         GLuint texture;
         Color color;
@@ -408,7 +398,6 @@ extern Window window;
         bool isBitmap;
     } CachedTexture;
 
-    // TextCacheEntry structure
     typedef struct {
         GLuint texture;
         int width;
@@ -416,7 +405,6 @@ extern Window window;
         char* text;
     } TextCacheEntry;
 
-    // TextCache structure
     typedef struct {
         TextCacheEntry* entries;
         size_t size;
@@ -424,16 +412,15 @@ extern Window window;
     } TextCache;
 
     // Texture Cache functions
-    GLuint CreateTextureFromBitmap(const unsigned char* bitmapData, int width, int height, bool linear);
-    GLuint CreateTextureFromColor(Color color, bool linear);
-    GLuint GetCachedTexture(Color color, bool linear, bool isBitmap, const unsigned char* bitmapData, int width, int height);
-    void CleanUpTextureCache(void);
-
+        GLuint CreateTextureFromBitmap(const unsigned char* bitmapData, int width, int height, bool linear);
+        GLuint CreateTextureFromColor(Color color, bool linear);
+        GLuint GetCachedTexture(Color color, bool linear, bool isBitmap, const unsigned char* bitmapData, int width, int height);
+        void CleanUpTextureCache(void);
     // Text Cache functions
-    void InitTextCache(void);
-    void AddToTextCache(GLuint texture, int width, int height, const char* text);
-    GLuint GetTextFromCache(const char* text, int* width, int* height);
-    void CleanupTextCache(void);
+        void InitTextCache(void);
+        void AddToTextCache(GLuint texture, int width, int height, const char* text);
+        GLuint GetTextFromCache(const char* text, int* width, int* height);
+        void CleanupTextCache(void);
 // DRAW
     void DrawRect(int x, int y, int width, int height, Color color);
     void DrawRectBorder(int x, int y, int width, int height, int thickness, Color color);
@@ -446,9 +433,9 @@ extern Window window;
 // IMAGE
     #define STB_IMAGE_IMPLEMENTATION
     #include <stb_image.h>
-
     #define STB_IMAGE_WRITE_IMPLEMENTATION
     #include <stb_image_write.h>
+    
     typedef struct {
         GLuint raw;         
         unsigned char* data;
@@ -461,7 +448,6 @@ extern Window window;
         bool nearest;
     } ImgInfo;
 
-    // Function prototypes
     Img LoadImage(ImgInfo info);
     void BindImg(Img image);
     void DrawImage(Img image, float x, float y, float width, float height, GLfloat angle);
@@ -498,13 +484,11 @@ extern Window window;
         int height;
     } TextSize;
 
-    // Function prototypes
     Font GenAtlas(Font font);
     Font LoadFont(const char* fontPath);
     TextSize GetTextSize(Font font, float fontSize, const char* text);
     void GenerateTextTexture(const char* text, Font font, Color color, GLuint* outTexture, int* outWidth, int* outHeight);
     void DrawText(int x, int y, Font font, float fontSize, const char* text, Color color);
-
 // END
 
 int WindowInit(int width, int height, char* title);

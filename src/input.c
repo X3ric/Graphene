@@ -313,59 +313,69 @@ void isMouseButtonReset(const int button) {
 // GAMEPAD & JOYSTICK
 
 #define MAX_JOYSTICKS (GLFW_JOYSTICK_LAST + 1)
-static int joysticks[MAX_JOYSTICKS] = {0};
-static int joystick_count = 0;
+
+typedef struct {
+    int joysticks[MAX_JOYSTICKS];
+    int count;
+} JoystickManager;
+
+static JoystickManager joystickManager;
+
+JoystickManager GetJoysticks(void){
+    return joystickManager;
+}
 
 static void joystick_callback(int jid, int event) {
     if (event == GLFW_CONNECTED) {
-        if (joystick_count < MAX_JOYSTICKS) {
-            joysticks[joystick_count++] = jid;
+        if (joystickManager.count < MAX_JOYSTICKS) {
+            joystickManager.joysticks[joystickManager.count++] = jid;
         }
     } else if (event == GLFW_DISCONNECTED) {
-        for (int i = 0; i < joystick_count; i++) {
-            if (joysticks[i] == jid) {
-                joysticks[i] = joysticks[--joystick_count];
+        for (int i = 0; i < joystickManager.count; i++) {
+            if (joystickManager.joysticks[i] == jid) {
+                joystickManager.joysticks[i] = joystickManager.joysticks[--joystickManager.count];
                 break;
             }
         }
     }
 }
 
-static const char* GetJoystickName(int jid) {
-    const char* name = glfwGetJoystickName(jid);
-    return name ? name : "Unknown";
-}
-
 void LoadJoysticks(void) {
+    joystickManager.count = 0;
     for (int jid = GLFW_JOYSTICK_1; jid <= GLFW_JOYSTICK_LAST; jid++) {
         if (glfwJoystickPresent(jid)) {
-            joysticks[joystick_count++] = jid;
+            joystickManager.joysticks[joystickManager.count++] = jid;
         }
     }
     glfwSetJoystickCallback(joystick_callback);
 }
 
-bool isGamepadConnected(int gamepadId) {
+const char* GetJoystickName(int jid) {
+    const char* name = glfwGetJoystickName(jid);
+    return name ? name : "Unknown";
+}
+
+bool IsGamepadConnected(int gamepadId) {
     return glfwJoystickPresent(gamepadId) && glfwJoystickIsGamepad(gamepadId);
 }
 
-int isGamepadButtonDown(int gamepadId, const char* buttonName) {
-    if (!isGamepadConnected(gamepadId)) return 0;
+int IsGamepadButtonDown(int gamepadId, const char* buttonName) {
+    if (!IsGamepadConnected(gamepadId)) return 0;
     GLFWgamepadstate state;
     if (!glfwGetGamepadState(gamepadId, &state)) return 0;
     int button = KeyChar(buttonName);
     return button != -1 ? state.buttons[button] == GLFW_PRESS : 0;
 }
 
-int isGamepadButtonUp(int gamepadId, const char* buttonName) {
-    if (!isGamepadConnected(gamepadId)) return 0;
+int IsGamepadButtonUp(int gamepadId, const char* buttonName) {
+    if (!IsGamepadConnected(gamepadId)) return 0;
     GLFWgamepadstate state;
     if (!glfwGetGamepadState(gamepadId, &state)) return 0;
     int button = KeyChar(buttonName);
     return button != -1 ? state.buttons[button] == GLFW_RELEASE : 0;
 }
 
-int isGamepadButton(const char* character) {
+int IsGamepadButton(const char* character) {
     int key = KeyChar(character);
     if (key == GLFW_KEY_UNKNOWN || key > GLFW_KEY_LAST) {
         return false;
@@ -377,14 +387,14 @@ int isGamepadButton(const char* character) {
     return toggleState[key];
 }
 
-void isGamepadButtonReset(const char* character) {
+void ResetGamepadButton(const char* character) {
     int key = KeyChar(character);
     if (key != GLFW_KEY_UNKNOWN && key <= GLFW_KEY_LAST) {
         toggleState[key] = 0;
     }
 }
 
-int GamepadAxisValue(const char* axisName) {
+int GetGamepadAxisValue(const char* axisName) {
     if (!axisName) return -1;
     if (strcmp(axisName, "LeftX") == 0) return GLFW_GAMEPAD_AXIS_LEFT_X;
     if (strcmp(axisName, "LeftY") == 0) return GLFW_GAMEPAD_AXIS_LEFT_Y;
@@ -395,11 +405,11 @@ int GamepadAxisValue(const char* axisName) {
     return -1;
 }
 
-float GamepadAxis(int gamepadId, const char* axisName) {
-    if (!isGamepadConnected(gamepadId)) return 0.0f;
+float GetGamepadAxis(int gamepadId, const char* axisName) {
+    if (!IsGamepadConnected(gamepadId)) return 0.0f;
     GLFWgamepadstate state;
     if (!glfwGetGamepadState(gamepadId, &state)) return 0.0f;
-    int axis = GamepadAxisValue(axisName);
+    int axis = GetGamepadAxisValue(axisName);
     if (axis == -1) return 0.0f;
     return state.axes[axis];
 }
