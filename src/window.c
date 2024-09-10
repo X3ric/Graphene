@@ -6,9 +6,11 @@
 #include <time.h>
 
 typedef struct {
-    bool input;
-    bool wireframe;
-    bool fps;
+    bool  input;
+    bool  wireframe;
+    bool  point;
+    float pointsize;
+    bool  fps;
 } Debug;
 
 typedef struct {
@@ -134,13 +136,12 @@ int WindowInit(int width, int height, char* title)
     window.height = height;
     window.screen_width = width;
     window.screen_height = height;
-    glfwSetErrorCallback(ErrorCallback);
     if (!glfwInit()) {
         printf("Failed to initialize GLFW\n");
         return -1;
     }
     glfwWindowHint(GLFW_SAMPLES, window.samples);
-    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
+    //glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     if (window.opt.transparent) {
         glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GL_TRUE); 
     }
@@ -163,6 +164,7 @@ int WindowInit(int width, int height, char* title)
         return -1;
     }
     glfwMakeContextCurrent(window.w);
+    glfwSetErrorCallback(ErrorCallback);
     glfwSetCharCallback(window.w, CharCallback);
     glfwSetKeyCallback(window.w, KeyCallback);
     glfwSetScrollCallback(window.w, ScrollCallback);

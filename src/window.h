@@ -7,9 +7,11 @@
 #include <time.h>
 
 typedef struct {
-    bool input;
-    bool wireframe;
-    bool fps;
+    bool  input;
+    bool  wireframe;
+    bool  point;
+    float pointsize;
+    bool  fps;
 } Debug;
 
 typedef struct {

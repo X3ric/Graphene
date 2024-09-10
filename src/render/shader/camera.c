@@ -106,10 +106,11 @@ void RenderShader(ShaderObject obj) {
             }
         }
     // Debug
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-        //glPointSize(1.5f);
         if (window.debug.wireframe) {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        } else if (window.debug.point) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+            if(window.debug.pointsize > 0) glPointSize(window.debug.pointsize);
         } else {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }

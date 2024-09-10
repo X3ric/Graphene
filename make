@@ -1,6 +1,6 @@
 #!/bin/bash -i
 
-CC="gcc"
+CC="clang -w"
 CFLAGS="-I./deps -I./src"
 LDFLAGS="-lglfw -lGL -lpthread -lGLEW -lm"
 TARGET="grafenic"
@@ -24,7 +24,7 @@ need() {
     return 1
 }
 
-need gcc
+need clang
 need fzf
 
 clean() {
@@ -54,10 +54,17 @@ fzf-splitted () {
     fi
 }
 
+compile-library() {
+    echo -e "$CC $CFLAGS -fPIC -c src/window.c -o ./build/window.o"
+    $CC $CFLAGS -fPIC -c src/window.c -o ./build/window.o
+    echo -e "$CC -shared -o ./build/libgrafenic.so ./build/window.o $LDFLAGS"
+    $CC -shared -o ./build/libgrafenic.so ./build/window.o $LDFLAGS
+}
+
 build() {
     clean
     uninstall
-
+    
     if [ -z "$1" ]; then
         SOURCES="./src/examples/$(ls ./src/examples | grep -v '^modules$' | sed 's/\.c$//' | fzf-splitted).c"
     else
@@ -66,13 +73,11 @@ build() {
 
     mkdir -p ./build/
 
-    echo -e "$CC $CFLAGS -fPIC -c src/window.c -o ./build/window.o"
-    $CC $CFLAGS -fPIC -c src/window.c -o ./build/window.o
-
-    echo -e "$CC -shared -o ./build/libgrafenic.so ./build/window.o $LDFLAGS"
-    $CC -shared -o ./build/libgrafenic.so ./build/window.o $LDFLAGS
+    compile-library
     
-    install
+    if [ ! -f "/usr/local/lib/libgrafenic.so" ]; then
+        install
+    fi
 
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
     echo -e "$CC $SOURCES -o $TARGET -lgrafenic $LDFLAGS"
@@ -85,7 +90,7 @@ run() {
 }
 
 debug() {
-    CC="gcc -g"
+    CC="clang -w -g"
     build $1
     gdb -q $TARGET --eval-command=run
 }

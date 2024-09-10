@@ -13,7 +13,7 @@ Camera cam = {
     0.0f, 0.0f, 0.0f,   // LocalPosition: x, y, z
     0.0f, 0.0f, 0.0f    // Rotation: x, y, z
     },
-    60.0f,               // Fov 0 means Orthographic
+    60.0f,              // Fov 0 means Orthographic
     1000.0f,            // Far Distance
     0.0f                // Near Distance 
 };
@@ -21,51 +21,51 @@ Camera cam = {
 void Update(void) {
     // Movement Camera
         double speed;
-        double clampz;
-        clampz = (window.deltatime);
-        //print(text("Cam lerp: %.5f\n", clampz));
+        //print(text("Cam lerp: %.5f\n", window.deltatime));
         if (isKeyDown("LeftShift")) {
-            speed = 0.0001f;
+            speed = 0.001f;
         } else {
-            speed = 0.00005f;
+            speed = 0.0005f;
         }
         if (isKeyDown("w")) {
-            cube.y += speed * clampz;
+            cube.y += speed * window.deltatime;
         } else if (isKeyDown("s")) {
-            cube.y -= speed * clampz;
+            cube.y -= speed * window.deltatime;
         }
         if (isKeyDown("a")) {
-            cube.x -= speed * clampz;
+            cube.x -= speed * window.deltatime;
         } else if (isKeyDown("d")) {
-            cube.x += speed * clampz;
+            cube.x += speed * window.deltatime;
         }
         if (isKeyDown("e")) {
-            targetZ = targetZ + speed * clampz;
+            targetZ = targetZ + speed * window.deltatime;
         } else if (isKeyDown("q")) {
-            targetZ = targetZ - speed * clampz;
+            targetZ = targetZ - speed * window.deltatime;
         }
         if (isKeyDown("r")) {
             speed = 0.0f;
             targetZ = 0.0f;
             mouse.scroll.y = 0;
             lastscrolly = mouse.scroll.y;
-            cube.x = Lerp(cube.x, 0.0f, 0.0001f * clampz);
-            cube.y = Lerp(cube.y, 0.0f, 0.0001f * clampz);
-            cube.z = Lerp(cube.z, 0.0f, 0.0001f * clampz);
+            cube.x = Lerp(cube.x, 0.0f, 0.001f * window.deltatime);
+            cube.y = Lerp(cube.y, 0.0f, 0.001f * window.deltatime);
+            cube.z = Lerp(cube.z, 0.0f, 0.001f * window.deltatime);
         } else {
             if (lastscrolly != mouse.scroll.y) {
                 targetZ = cube.z + (mouse.scroll.y - lastscrolly);
                 mouse.scroll.y = 0;
             }
-            cube.z = Lerp(cube.z, targetZ, 0.0001f * clampz);
+            cube.z = Lerp(cube.z, targetZ, 0.0025f * (float)window.deltatime);
             lastscrolly = mouse.scroll.y;
         }
     // Rotation Vec3
         Vec3 rot;
-        rot.x = window.deltatime * 0.2f;
-        rot.y = window.deltatime * 0.3f;
-        rot.z = window.deltatime * 0.4f;
+        rot.x = window.deltatime * 0.05f;
+        rot.y = window.deltatime * 0.06f;
+        rot.z = window.deltatime * 0.07f;
     // 3d envoiriment
+        //window.debug.point = true;
+        //window.debug.pointsize = 10.0f;
         //window.debug.wireframe = true; //window.debug single part
         //DrawCube(1.0f, cube.x, cube.y, cube.z, rot.x, rot.y, rot.z, GRAY);
         BindImg(img);
@@ -77,9 +77,10 @@ void Update(void) {
         shaderdefault,              // Shader
         cam,                        // Camera
         });
+        //window.debug.point = false;
         //window.debug.wireframe = false; //stop debugging
     // Modular ui.h functions
-        Fps(0, 0, font, Scaling(50));
+        Fps(0, 0, font, Scaling(35));
         ExitPromt(font);  
 }
 
