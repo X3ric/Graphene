@@ -120,8 +120,13 @@ extern Window window;
     #endif
 
     typedef struct {
+        float x, y;
+    } Vec2;
+
+    typedef struct {
         float x, y, z;
     } Vec3;
+
 
     // Error handling
     void ErrorCallback(int error, const char* description);
@@ -263,6 +268,7 @@ extern Window window;
     #define FLOAT_PER_VERTEX 5
 
     extern Shader shaderdefault;
+    extern Shader shaderfont;
 
     // SHADER UTILS
         // Shader Utils
@@ -279,6 +285,7 @@ extern Window window;
             GLint GLuint1f(Shader shader, const char* var, float in);
             GLint GLuint2f(Shader shader, const char* var, float in1, float in2);
             GLint GLuint3f(Shader shader, const char* var, float in1, float in2, float in3);
+            GLint GLuint4f(Shader shader, const char* var, float in1, float in2, float in3, float in4);
             GLint GLumatrix4fv(Shader shader, const char* var, GLfloat* in);
     // SHADER MATH
         void MatrixIdentity(GLfloat* out);
@@ -400,29 +407,11 @@ extern Window window;
         bool isBitmap;
     } CachedTexture;
 
-    typedef struct {
-        GLuint texture;
-        int width;
-        int height;
-        char* text;
-    } TextCacheEntry;
-
-    typedef struct {
-        TextCacheEntry* entries;
-        size_t size;
-        size_t capacity;
-    } TextCache;
-
     // Texture Cache functions
         GLuint CreateTextureFromBitmap(const unsigned char* bitmapData, int width, int height, bool linear);
         GLuint CreateTextureFromColor(Color color, bool linear);
         GLuint GetCachedTexture(Color color, bool linear, bool isBitmap, const unsigned char* bitmapData, int width, int height);
         void CleanUpTextureCache(void);
-    // Text Cache functions
-        void InitTextCache(void);
-        void AddToTextCache(GLuint texture, int width, int height, const char* text);
-        GLuint GetTextFromCache(const char* text, int* width, int* height);
-        void CleanupTextCache(void);
 // DRAW
     void DrawRect(int x, int y, int width, int height, Color color);
     void DrawRectBorder(int x, int y, int width, int height, int thickness, Color color);
@@ -462,9 +451,11 @@ extern Window window;
     #include <stb_truetype.h>
 
     typedef struct {
-        float x0, y0, x1, y1;  // Coordinates of the glyph in the atlas
+        float x0, y0, x1, y1;  // Coordinates of the glyph in the atlas (in pixels)
         float xoff, yoff;      // Left/top offsets
         float xadvance;        // Advance width
+        float u0, v0;          // Texture coordinates for the top-left corner of the glyph
+        float u1, v1;          // Texture coordinates for the bottom-right corner of the glyph
     } Glyph;
 
     #define MAX_GLYPHS 256
@@ -489,7 +480,7 @@ extern Window window;
     Font GenAtlas(Font font);
     Font LoadFont(const char* fontPath);
     TextSize GetTextSize(Font font, float fontSize, const char* text);
-    void GenerateTextTexture(const char* text, Font font, Color color, GLuint* outTexture, int* outWidth, int* outHeight);
+    void RenderShaderText(ShaderObject obj, Color color);
     void DrawText(int x, int y, Font font, float fontSize, const char* text, Color color);
 // END
 

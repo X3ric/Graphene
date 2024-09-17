@@ -19,9 +19,7 @@ int main(int arglenght, char** args)
         WindowClear();
         // Movement camera.transform
             double speed;
-            double clampz;
-            clampz = (window.deltatime);
-            //print(text("Cam lerp: %.5f\n", clampz));
+            //print(text("Cam lerp: %.5f\n", (float)window.deltatime));
             if (isKeyDown("LeftShift")) {
                 speed = 0.1f;
             } else {
@@ -29,34 +27,34 @@ int main(int arglenght, char** args)
             }
             float movement_smothing = 0.75f;
             if (isKeyDown("w")) {
-                camera.transform.position.y = Lerp(camera.transform.position.y, camera.transform.position.y + speed * clampz, movement_smothing);
+                camera.transform.position.y = Lerp(camera.transform.position.y, camera.transform.position.y + speed * (float)window.deltatime, movement_smothing);
             } else if (isKeyDown("s")) {
-                camera.transform.position.y = Lerp(camera.transform.position.y, camera.transform.position.y - speed * clampz, movement_smothing);
+                camera.transform.position.y = Lerp(camera.transform.position.y, camera.transform.position.y - speed * (float)window.deltatime, movement_smothing);
             }
             if (isKeyDown("a")) {
-                camera.transform.position.x = Lerp(camera.transform.position.x, camera.transform.position.x + speed * clampz, movement_smothing);
+                camera.transform.position.x = Lerp(camera.transform.position.x, camera.transform.position.x + speed * (float)window.deltatime, movement_smothing);
             } else if (isKeyDown("d")) {
-                camera.transform.position.x = Lerp(camera.transform.position.x, camera.transform.position.x - speed * clampz, movement_smothing);
+                camera.transform.position.x = Lerp(camera.transform.position.x, camera.transform.position.x - speed * (float)window.deltatime, movement_smothing);
             }
             if (isKeyDown("r")) {
                 speed = 0.0f;
-                camera.transform.position.x = Lerp(camera.transform.position.x, 0.0f, 0.0003f * clampz);
-                camera.transform.position.y = Lerp(camera.transform.position.y, 0.0f, 0.0003f * clampz);
-                camera.transform.position.z = Lerp(camera.transform.position.z, 1.0f, 0.0003f * clampz);
-                camera.transform.rotation.z = Lerp(camera.transform.rotation.z, (GLfloat)0.0f, 0.0003f * clampz);
+                camera.transform.position.x = Lerp(camera.transform.position.x, 0.0f, 0.0005f * (float)window.deltatime);
+                camera.transform.position.y = Lerp(camera.transform.position.y, 0.0f, 0.0005f * (float)window.deltatime);
+                camera.transform.position.z = Lerp(camera.transform.position.z, 1.0f, 0.0005f * (float)window.deltatime);
+                camera.transform.rotation.z = Lerp(camera.transform.rotation.z, (GLfloat)0.0f, 0.0005f * (float)window.deltatime);
                 mouse.scroll.y = 0.0f;
             } else {
                 if (camera.transform.position.z == 0.0f) {
-                    camera.transform.position.z = Lerp(1.0f, mouse.scroll.y * 0.1f, 0.0003f * clampz);
+                    camera.transform.position.z = Lerp(1.0f, mouse.scroll.y * 0.1f, 0.005f * (float)window.deltatime);
                 } else {
-                    camera.transform.position.z = Lerp(camera.transform.position.z, mouse.scroll.y * 0.1f + 1.0f , 0.0003f * clampz);
+                    camera.transform.position.z = Lerp(camera.transform.position.z, mouse.scroll.y * 0.1f + 1.0f , 0.005f * (float)window.deltatime);
                 }
             }
             if (mouse.scroll.y <= 0) {mouse.scroll.y = 0;}
             if (isKeyDown("e")) {
-            camera.transform.rotation.z -= (speed / 1000.0f) * clampz;
+                camera.transform.rotation.z -= (speed / 100.0f) * (float)window.deltatime;
             } else if (isKeyDown("q")) {
-            camera.transform.rotation.z += (speed / 1000.0f) * clampz;
+                camera.transform.rotation.z += (speed / 100.0f) * (float)window.deltatime;
             }
         // DrawImage
             DrawImageShader(img,0, 0, window.screen_width, window.screen_height,0,custom);

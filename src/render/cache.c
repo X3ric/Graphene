@@ -1,3 +1,5 @@
+// Texture Cache
+
 typedef struct {
     GLuint texture;
     Color color;
@@ -5,21 +7,6 @@ typedef struct {
     bool linear;
     bool isBitmap;
 } CachedTexture;
-
-typedef struct {
-    GLuint texture;
-    int width;
-    int height;
-    char* text;
-} TextCacheEntry;
-
-typedef struct {
-    TextCacheEntry* entries;
-    size_t size;
-    size_t capacity;
-} TextCache;
-
-// Texture Cache
 
 static CachedTexture* textureCache = NULL;
 static size_t cacheSize = 0;
@@ -80,68 +67,4 @@ void CleanUpTextureCache() {
     free(textureCache);
     textureCache = NULL;
     cacheSize = 0;
-}
-
-
-// Text Cache
-
-static TextCache* textCache = NULL;
-
-void InitTextCache(void) {
-    if (textCache) return;
-    textCache = (TextCache*)malloc(sizeof(TextCache));
-    textCache->capacity = 16;
-    textCache->size = 0;
-    textCache->entries = (TextCacheEntry*)calloc(textCache->capacity, sizeof(TextCacheEntry));
-}
-
-void AddToTextCache(GLuint texture, int width, int height, const char* text) {
-    if (!textCache) InitTextCache();
-    for (size_t i = 0; i < textCache->size; ++i) {
-        if (textCache->entries[i].text && strcmp(textCache->entries[i].text, text) == 0) {
-            textCache->entries[i].texture = texture;
-            textCache->entries[i].width = width;
-            textCache->entries[i].height = height;
-            return;
-        }
-    }
-    if (textCache->size >= textCache->capacity) {
-        size_t new_capacity = textCache->capacity * 2;
-        TextCacheEntry* new_entries = (TextCacheEntry*)realloc(textCache->entries, new_capacity * sizeof(TextCacheEntry));
-        if (new_entries) {
-            textCache->entries = new_entries;
-            textCache->capacity = new_capacity;
-            for (size_t i = textCache->size; i < new_capacity; ++i) {
-                textCache->entries[i].text = NULL;
-            }
-        }
-    }
-    size_t index = textCache->size;
-    textCache->entries[index].texture = texture;
-    textCache->entries[index].width = width;
-    textCache->entries[index].height = height;
-    textCache->entries[index].text = strdup(text);
-    textCache->size++;
-}
-
-GLuint GetTextFromCache(const char* text, int* width, int* height) {
-    if (!textCache) return 0;
-    for (size_t i = 0; i < textCache->size; ++i) {
-        if (textCache->entries[i].text && strcmp(textCache->entries[i].text, text) == 0) {
-            if (width) *width = textCache->entries[i].width;
-            if (height) *height = textCache->entries[i].height;
-            return textCache->entries[i].texture;
-        }
-    }
-    return 0;
-}
-
-void CleanupTextCache(void) {
-    if (!textCache) return;
-    for (size_t i = 0; i < textCache->size; ++i) {
-        free(textCache->entries[i].text);
-    }
-    free(textCache->entries);
-    free(textCache);
-    textCache = NULL;
 }

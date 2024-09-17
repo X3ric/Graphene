@@ -15,6 +15,7 @@ GLuint EBO;
 #define FLOAT_PER_VERTEX 5
 
 Shader shaderdefault;
+Shader shaderfont;
 
 #include "utils.c"
 #include "math.c"
@@ -23,6 +24,7 @@ Shader shaderdefault;
 void InitializeShader() {
     // Generate Shader default
         shaderdefault = LoadShader("./res/shaders/default.vert","./res/shaders/default.frag");
+        shaderfont = LoadShader("./res/shaders/default.vert","./res/shaders/font.frag");
     // Generate VAO, VBO, and EBO
         glGenVertexArrays(1, &VAO);
         glGenBuffers(1, &VBO);

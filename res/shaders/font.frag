@@ -5,16 +5,13 @@ uniform float iTime;
 uniform vec2 iResolution;
 uniform sampler2D screenTexture;
 
+uniform vec4 Color;
+
 in vec2 texCoord;
 out vec4 fragColor;
 
 void mainImage(in vec2 texCoord, in vec2 fragCoord, out vec4 fragColor) {
-    //fragColor = vec4(texCoord, 0.0, 1.0); // uv debug
-    //fragColor = texture(screenTexture, texCoord);
-    vec4 color = texture(screenTexture, texCoord);
-    
-    // Invert color and set alpha
-    fragColor = vec4(1.0 - color.rgb, 0.3);
+    fragColor = texture(screenTexture, texCoord) * Color;
 }
 
 void main() {

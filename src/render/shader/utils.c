@@ -134,6 +134,10 @@ GLint GLuint3f(Shader shader, const char* var,float in1,float in2,float in3){
     glUniform3f(glGetUniformLocation(shader.Program, var), in1, in2, in3);
 }
 
+GLint GLuint4f(Shader shader, const char* var,float in1,float in2,float in3,float in4){
+    glUniform4f(glGetUniformLocation(shader.Program, var), in1, in2, in3, in4);
+}
+
 GLint GLumatrix4fv(Shader shader, const char* var,GLfloat* in){
     glUniformMatrix4fv(glGetUniformLocation(shader.Program, var), 1, GL_FALSE, in);
 }

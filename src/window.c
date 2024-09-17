@@ -80,7 +80,7 @@ void WindowClear() {
     WindowFrames();
 }
 
-void WindowProcess() {
+void WindowChecks() {
     mouse = MouseInit();
     if (window.opt.fullscreen != window.opt.oldfullscreen) {
         if (window.opt.fullscreen) {
@@ -117,6 +117,10 @@ void WindowProcess() {
         }
         window.opt.oldhided = window.opt.hided;
     }
+}
+
+void WindowProcess() {
+    WindowChecks();
     glfwSwapBuffers(window.w);
     glfwPollEvents();
 }
@@ -141,7 +145,7 @@ int WindowInit(int width, int height, char* title)
         return -1;
     }
     glfwWindowHint(GLFW_SAMPLES, window.samples);
-    //glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
+    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     if (window.opt.transparent) {
         glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GL_TRUE); 
     }

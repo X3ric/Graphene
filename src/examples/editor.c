@@ -2,7 +2,7 @@
 #include "modules/ui.c"
 
 Font font;
-Shader custom;
+Shader shaderfontcursor;
 
 #define MAX_TEXT_LENGTH 1024
 #define MAX_LINES 1024
@@ -19,10 +19,9 @@ int windowWidth = 1920, windowHeight = 1080;
 static double lastKeyPressTime[GLFW_KEY_LAST + 1] = {0};
 static bool keyStates[GLFW_KEY_LAST + 1] = {false};
 
-int maxLineNumWidth;
-int maxLineNumHeight;
 int maxVisibleLines;
-int fontSize;
+int lineHeight;
+double fontSize;
 
 void InitializeLine(int index) {
     if (index >= MAX_LINES) return;
@@ -91,11 +90,7 @@ void InsertNewline() {
     cursorCol = 0;
 }
 
-static double cursorBlinkTime = 0.0;
-static const double CURSOR_BLINK_INTERVAL = 0.65;
-
 void AdjustScrollToCursor() {
-    int lineHeight = maxLineNumHeight;
     int cursorY = cursorLine * lineHeight;
     int viewStartY = scrollY;
     int viewEndY = scrollY + window.screen_height - lineHeight;
@@ -107,54 +102,10 @@ void AdjustScrollToCursor() {
 }
 
 void ScrollCallbackMod(GLFWwindow* window, double xoffset, double yoffset) {
-    int lineHeight = maxLineNumHeight;
     int scrollAmount = (int)(yoffset);
     int newScrollY = scrollY - scrollAmount * lineHeight;
     int maxScroll = (numLines - maxVisibleLines + 1) * lineHeight;
     scrollY = fmax(0, fmin(maxScroll, newScrollY));
-}
-
-void DrawTextEditor(Font font, float fontSize, Color textColor, Color lineNumberColor, int cursorLine, int cursorCol) {
-    int lineHeight = GetTextSize(font, fontSize, "A").height;
-    int startLine = fmax(0, scrollY / lineHeight);
-    maxLineNumWidth = GetTextSize(font, fontSize, "9999").width;
-    maxLineNumHeight = lineHeight;
-    maxVisibleLines = window.screen_height / lineHeight;
-    int endLine = fmin(numLines, startLine + maxVisibleLines + 1);
-    double currentTime = glfwGetTime();
-    bool showCursor = fmod(currentTime, CURSOR_BLINK_INTERVAL) < (CURSOR_BLINK_INTERVAL / 2.0);
-    for (int i = startLine; i < endLine; i++) {
-        int y = (i - startLine) * lineHeight - (scrollY % lineHeight);
-        char lineNum[10];
-        snprintf(lineNum, sizeof(lineNum), "%d", i + 1);
-        int lineNumberY = y + (lineHeight - GetTextSize(font, fontSize, lineNum).height) / 2;
-        DrawText(0, lineNumberY, font, fontSize, lineNum, lineNumberColor);
-        int textX = maxLineNumWidth;
-        int textY = y + (lineHeight - GetTextSize(font, fontSize, lines[i].text).height) / 2;
-        DrawText(textX, textY, font, fontSize, lines[i].text, textColor);
-        if (i == cursorLine && showCursor) {
-            int cursorX = textX;
-            for (int j = 0; j < cursorCol; j++) {
-                int glyphIndex = lines[i].text[j] - 32;
-                if (glyphIndex >= 0 && glyphIndex < MAX_GLYPHS) {
-                    Glyph glyph = font.glyphs[glyphIndex];
-                    cursorX += (int)(glyph.xadvance * fontSize / font.fontSize);
-                }
-            }
-            int cursorWidth = maxLineNumWidth / 4;
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            Rect((RectObject){
-                { cursorX, y, 0.0f },
-                { cursorX + cursorWidth, y, 0.0f },
-                { cursorX, y + lineHeight, 0.0f },
-                { cursorX + cursorWidth, y + lineHeight, 0.0f },
-                custom,
-                camera,
-            });
-            glDisable(GL_BLEND);
-        }
-    }
 }
 
 void CharCallbackMod(GLFWwindow* glfw_window, unsigned int codepoint) {
@@ -170,54 +121,29 @@ void HandleKeyRepeat(int key, double currentTime) {
     }
 }
 
-#include <stdio.h>
-#include <GLFW/glfw3.h>
-
-int KeyChar(const char* character) {
-    if (!character) return GLFW_KEY_UNKNOWN;
-
-    // Example conversion of printable characters to GLFW key codes
-    if (strlen(character) == 1) {
-        char ch = character[0];
-        if (ch >= 'A' && ch <= 'Z') {
-            return GLFW_KEY_A + (ch - 'A');
-        }
-        if (ch >= 'a' && ch <= 'z') {
-            return GLFW_KEY_A + (ch - 'a');
-        }
-        if (ch >= '0' && ch <= '9') {
-            return GLFW_KEY_0 + (ch - '0');
-        }
-        switch(ch) {
-            case ' ': return GLFW_KEY_SPACE;
-            case '\'': return GLFW_KEY_APOSTROPHE;
-            case ',': return GLFW_KEY_COMMA;
-            case '.': return GLFW_KEY_PERIOD;
-            case '/': return GLFW_KEY_SLASH;
-            case ';': return GLFW_KEY_SEMICOLON;
-            case '=': return GLFW_KEY_EQUAL;
-            case '[': return GLFW_KEY_LEFT_BRACKET;
-            case '\\': return GLFW_KEY_BACKSLASH;
-            case ']': return GLFW_KEY_RIGHT_BRACKET;
-            case '`': return GLFW_KEY_GRAVE_ACCENT;
-            case '-': return GLFW_KEY_MINUS;
-            default: return GLFW_KEY_UNKNOWN;
-        }
-    }
-    return GLFW_KEY_UNKNOWN;
-}
+int selectionStartLine = -1, selectionStartCol = -1;  // Start of selection
+int selectionEndLine = -1, selectionEndCol = -1;      // End of selection
+bool isSelecting = false;
 
 void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, int mods) {
     static double lastPressTime = 0.0;
     double currentTime = glfwGetTime();
+    bool ctrlPressed = (mods & GLFW_MOD_CONTROL) != 0;
     if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-        bool ctrlPressed = (mods & GLFW_MOD_CONTROL) != 0;
         if (ctrlPressed) {
             repeatInterval = 0.001;
         } else {
             repeatInterval = 0.03;
-        }   
+        }
         HandleKeyRepeat(key, currentTime);
+        if (ctrlPressed) {
+            if (selectionStartLine == -1 && selectionStartCol == -1) {
+                selectionStartLine = cursorLine;
+                selectionStartCol = cursorCol;
+            }
+        } else {
+            selectionStartLine = selectionStartCol = selectionEndLine = selectionEndCol = -1;
+        }
         switch (key) {
             case GLFW_KEY_BACKSPACE: 
                 DeleteChar(); 
@@ -242,11 +168,17 @@ void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, 
                 cursorLine = fmin(numLines - 1, cursorLine + 1); 
                 cursorCol = fmin(cursorCol, lines[cursorLine].length); 
                 break;
+            case 47: 
+                if (ctrlPressed) fontSize = Lerp(fontSize, fontSize - 1.0f, Easing(window.deltatime, "CubicOut"));  
+                break;
+            case 93: 
+                if (ctrlPressed) fontSize = Lerp(fontSize, fontSize + 1.0f, Easing(window.deltatime, "CubicOut")); 
+                break;
             case GLFW_KEY_HOME: 
                 cursorCol = 0; 
                 break;
             case GLFW_KEY_END: 
-                cursorCol = lines[cursorLine].length; 
+                cursorCol = lines[cursorLine].length;
                 break;
             case GLFW_KEY_PAGE_UP: 
                 cursorLine = fmax(0, cursorLine - maxVisibleLines); 
@@ -256,63 +188,142 @@ void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, 
                 cursorLine = fmin(numLines - 1, cursorLine + maxVisibleLines); 
                 cursorCol = fmin(cursorCol, lines[cursorLine].length); 
                 break;
-            case GLFW_KEY_L: 
-                cursorCol = fmin(lines[cursorLine].length, cursorCol + 1);
-                break;
-            case GLFW_KEY_J: 
-                cursorLine = fmin(numLines - 1, cursorLine + 1);
-                cursorCol = fmin(cursorCol, lines[cursorLine].length);
-                break;
-            case GLFW_KEY_K: 
-                cursorLine = fmax(0, cursorLine - 1);
-                cursorCol = fmin(cursorCol, lines[cursorLine].length);
-                break;
-            case GLFW_KEY_H: 
-                cursorCol = fmax(0, cursorCol - 1);
-                break;
             default:
-                // Handle other keys if needed
                 break;
         }
-        if (ctrlPressed && key == GLFW_KEY_L) {
-            for (int i = 0; i < numLines; i++) {
-                free(lines[i].text);
-                lines[i].text = malloc(MAX_TEXT_LENGTH);
-                lines[i].text[0] = '\0';
-                lines[i].length = 0;
-            }
-            numLines = 1;
-            cursorLine = 0;
-            cursorCol = 0;
-            scrollY = 0;
+        if (ctrlPressed) {
+            selectionEndLine = cursorLine;
+            selectionEndCol = cursorCol;
         }
         AdjustScrollToCursor();
         const char* keyName = glfwGetKeyName(key, 0);
         if (keyName) {
             int charCode = KeyChar(keyName);
             if (charCode != GLFW_KEY_UNKNOWN) {
-                printf("Key pressed: %s (Keycode: %d)\n", keyName, charCode);
+                // printf("Key pressed: %s (Keycode: %d)\n", keyName, charCode);
             }
         }
     } else if (action == GLFW_RELEASE) {
         keyStates[key] = false;
+        if (!ctrlPressed) {
+            isSelecting = false;
+        }
     }
+}
+
+void DrawTextMod(int x, int y, Font font, float fontSize, const char* text, Color color, int cursorStart, int cursorEnd) {
+    if (fontSize <= 1.0f) fontSize = 1.0f;
+    if (color.a == 0) color.a = 255;
+    if (!font.fontBuffer || !font.textureID) return;
+    glBindTexture(GL_TEXTURE_2D, font.textureID);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    float scale = stbtt_ScaleForPixelHeight(&font.fontInfo, fontSize);
+    int ascent, descent, lineGap;
+    stbtt_GetFontVMetrics(&font.fontInfo, &ascent, &descent, &lineGap);
+    float ascent_px = ascent * scale;
+    float lineHeight = (ascent - descent + lineGap) * scale;
+    float xpos = (float)x;
+    float ypos = (float)y + ascent_px;
+    for (size_t i = 0; text[i] != '\0'; ++i) {
+        if (text[i] == '\n') {
+            ypos += lineHeight;
+            xpos = (float)x;
+            continue;
+        }
+        int codepoint = (unsigned char)text[i];
+        if (codepoint < 32 || codepoint >= 32 + MAX_GLYPHS) continue;
+        Glyph* g = &font.glyphs[codepoint - 32];
+        if (!g) continue;
+        int glyphIndex = stbtt_FindGlyphIndex(&font.fontInfo, codepoint);
+        if (glyphIndex == 0) continue;
+        int advanceWidth, leftSideBearing;
+        stbtt_GetGlyphHMetrics(&font.fontInfo, glyphIndex, &advanceWidth, &leftSideBearing);
+        int x0, y0, x1, y1;
+        stbtt_GetGlyphBitmapBox(&font.fontInfo, glyphIndex, 1.0f, 1.0f, &x0, &y0, &x1, &y1);
+        float x0_scaled = x0 * scale;
+        float y0_scaled = y0 * scale;
+        float x1_scaled = x1 * scale;
+        float y1_scaled = y1 * scale;
+        float x_start = xpos + leftSideBearing * scale;
+        float y_start = ypos;
+        float x_pos = x_start + x0_scaled;
+        float y_pos = y_start + y0_scaled;
+        float w = (x1_scaled - x0_scaled);
+        float h = (y1_scaled - y0_scaled);
+        float u0 = g->u0;
+        float v0 = g->v0;
+        float u1 = g->u1;
+        float v1 = g->v1;
+        GLfloat vertices[] = {
+            x_pos,     y_pos + h, 0.0f, u0, v1,  // Top-left
+            x_pos + w, y_pos + h, 0.0f, u1, v1,  // Top-right
+            x_pos + w, y_pos,     0.0f, u1, v0,  // Bottom-right
+            x_pos,     y_pos,     0.0f, u0, v0   // Bottom-left
+        };
+        GLuint indices[] = {0, 1, 2, 2, 3, 0};
+        bool isSelected = (i >= cursorStart && i <= cursorEnd);
+        if (isSelected) {
+            RenderShaderText((ShaderObject){camera, shaderfontcursor, vertices, indices, sizeof(vertices), sizeof(indices)}, color);
+        } else {
+            RenderShaderText((ShaderObject){camera, shaderfont, vertices, indices, sizeof(vertices), sizeof(indices)}, color);
+        }
+        xpos += (advanceWidth * scale);
+        if (text[i + 1]) {
+            unsigned char nextCodepoint = (unsigned char)text[i + 1];
+            if (nextCodepoint >= 32 && nextCodepoint < 32 + MAX_GLYPHS) {
+                int nextGlyphIndex = stbtt_FindGlyphIndex(&font.fontInfo, nextCodepoint);
+                if (nextGlyphIndex != 0) {
+                    int kernAdvance = stbtt_GetGlyphKernAdvance(&font.fontInfo, glyphIndex, nextGlyphIndex);
+                    xpos += kernAdvance * scale;
+                }
+            }
+        }
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_BLEND);
+}
+
+void DrawTextEditor(Font font, float fontSize, Color textColor, Color lineNumberColor, int cursorLine, int cursorCol) {
+    int lineHeight = GetTextSize(font, fontSize, "gj|").height;
+    int numVisibleLines = window.screen_height / lineHeight;
+    int startLine = fmax(0, scrollY / lineHeight);
+    int endLine = fmin(numLines, startLine + numVisibleLines);
+    char textBlock[1024 * 1024];
+    int textBlockLen = 0;
+    int cursorPosInTextBlock = -1;
+    int selectionStart = -1;
+    int selectionEnd = -1;
+    for (int i = startLine; i < endLine; i++) {
+        if (i == cursorLine) {
+            cursorPosInTextBlock = textBlockLen + cursorCol;
+        }
+        if (selectionStart == -1) selectionStart = cursorPosInTextBlock;
+        if (selectionEnd == -1) selectionEnd = cursorPosInTextBlock;
+        textBlockLen += snprintf(textBlock + textBlockLen, sizeof(textBlock) - textBlockLen, "%s\n", lines[i].text);
+    }
+    textBlock[textBlockLen] = '\0';
+    if (cursorPosInTextBlock >= 0) {
+        if (cursorPosInTextBlock < selectionStart) selectionStart = cursorPosInTextBlock;
+        if (cursorPosInTextBlock > selectionEnd) selectionEnd = cursorPosInTextBlock;
+    }
+    DrawTextMod(0, 0, font, fontSize, textBlock, textColor, selectionStart, selectionEnd);
 }
 
 int main(int argc, char** argv) {
     WindowInit(windowWidth, windowHeight, "Grafenic - Text Editor");
     font = LoadFont("./res/fonts/JetBrains.ttf");
     font.nearest = false;
-    custom = LoadShader("./res/shaders/default.vert", "./res/shaders/cursor.frag");
-    custom.hotreloading = true;
+    shaderfontcursor = LoadShader("./res/shaders/default.vert", "./res/shaders/fontcursor.frag");
+    shaderfontcursor.hotreloading = true;
     shaderdefault.hotreloading = true;
     InitializeLine(0);
     glfwSetCharCallback(window.w, CharCallbackMod);
     glfwSetKeyCallback(window.w, KeyCallbackMod);
     glfwSetScrollCallback(window.w, ScrollCallbackMod);
+    fontSize = 100.0;
     while (!WindowState()) {
         WindowClear();
-        fontSize = 32.0;
         DrawTextEditor(font, Scaling(fontSize), WHITE, GRAY, cursorLine, cursorCol);
         // Modular ui.h functions
             ExitPromt(font);

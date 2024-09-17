@@ -262,17 +262,11 @@ Mouse mouse;
 
 Mouse MouseInit() {
     glfwGetCursorPos(window.w, &mouse.x, &mouse.y);
-    if (mouse.scroll.x != mouse.scroll.lastx || mouse.scroll.y != mouse.scroll.lasty) {
-        mouse.scroll.scrolling = true;
-    } else {
-        mouse.scroll.scrolling = false;
-    }
+    mouse.scroll.scrolling = (mouse.scroll.x != mouse.scroll.lastx) || (mouse.scroll.y != mouse.scroll.lasty);
     mouse.scroll.lastx = mouse.scroll.x;
     mouse.scroll.lasty = mouse.scroll.y;
-    if (mouse.x != mouse.lastx || mouse.y != mouse.lasty) {
-        return (Mouse){mouse.x, mouse.y, mouse.x, mouse.y, mouse.scroll, true};
-    }
-    return (Mouse){mouse.x, mouse.y, mouse.lastx, mouse.lasty, mouse.scroll, false};
+    bool moved = (mouse.x != mouse.lastx) || (mouse.y != mouse.lasty);
+    return (Mouse){mouse.x, mouse.y, mouse.x, mouse.y, mouse.scroll, moved};
 }
 
 void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
