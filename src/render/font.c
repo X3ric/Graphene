@@ -26,7 +26,7 @@ typedef struct {
 } Font;
 
 Font GenAtlas(Font font) {
-    if (font.fontSize <= 1) font.fontSize = 64.0f;
+    if (font.fontSize <= 1) font.fontSize = 32.0f;
     if (!font.fontBuffer) return font;
     font.atlasWidth = 1024;
     font.atlasHeight = 1024;
@@ -41,7 +41,7 @@ Font GenAtlas(Font font) {
         free(font.fontBuffer);
         return font;
     }
-    stbtt_PackSetOversampling(&packContext, 2, 2);
+    stbtt_PackSetOversampling(&packContext, 4, 4);
     stbtt_packedchar packedChars[MAX_GLYPHS];
     if (!stbtt_PackFontRange(&packContext, font.fontBuffer, 0, font.fontSize, 32, MAX_GLYPHS, packedChars)) {
         stbtt_PackEnd(&packContext);
@@ -137,7 +137,7 @@ TextSize GetTextSize(Font font, float fontSize, const char* text) {
 }
 
 
-void RenderShaderText(ShaderObject obj, Color color) {
+void RenderShaderText(ShaderObject obj, Color color, float fontSize) {
     if (obj.shader.hotreloading) {
         obj.shader = ShaderHotReload(obj.shader);
     }
@@ -183,6 +183,7 @@ void RenderShaderText(ShaderObject obj, Color color) {
         GLumatrix4fv(obj.shader, "projection", Projection);
         GLumatrix4fv(obj.shader, "model", Model);
         GLumatrix4fv(obj.shader, "view", View);
+        GLuint1f(obj.shader, "Size", fontSize);
         GLuint4f(obj.shader, "Color", color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f);
         GLuint1f(obj.shader, "iTime", glfwGetTime());
         GLuint2f(obj.shader, "iResolution", window.screen_width, window.screen_height);
@@ -253,7 +254,7 @@ void DrawText(int x, int y, Font font, float fontSize, const char* text, Color c
             x_pos,     y_pos,     0.0f, u0, v0   // Bottom-left
         };
         GLuint indices[] = {0, 1, 2, 2, 3, 0};
-        RenderShaderText((ShaderObject){camera, shaderfont, vertices, indices, sizeof(vertices), sizeof(indices)}, color);
+        RenderShaderText((ShaderObject){camera, shaderfont, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
         xpos += (advanceWidth * scale);
         if (text[i + 1]) {
             unsigned char nextCodepoint = (unsigned char)text[i + 1];

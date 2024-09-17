@@ -14,7 +14,6 @@ typedef struct {
 
 Line lines[MAX_LINES] = {0};
 int numLines = 1, cursorLine = 0, cursorCol = 0, scrollY = 0;
-int windowWidth = 1920, windowHeight = 1080;
 
 static double lastKeyPressTime[GLFW_KEY_LAST + 1] = {0};
 static bool keyStates[GLFW_KEY_LAST + 1] = {false};
@@ -101,6 +100,14 @@ void AdjustScrollToCursor() {
     }
 }
 
+int GetGlobalTextPosition(int line, int col) {
+    int position = 0;
+    for (int i = 0; i < line; ++i) {
+        position += strlen(lines[i].text) + 1;
+    }
+    return position + col;
+}
+
 void ScrollCallbackMod(GLFWwindow* window, double xoffset, double yoffset) {
     int scrollAmount = (int)(yoffset);
     int newScrollY = scrollY - scrollAmount * lineHeight;
@@ -125,6 +132,41 @@ int selectionStartLine = -1, selectionStartCol = -1;  // Start of selection
 int selectionEndLine = -1, selectionEndCol = -1;      // End of selection
 bool isSelecting = false;
 
+void DeleteSelection() {
+    if (selectionStartLine == -1 || selectionEndLine == -1) return;
+    int startLine = selectionStartLine;
+    int startCol = selectionStartCol;
+    int endLine = selectionEndLine;
+    int endCol = selectionEndCol;
+    if (startLine > endLine || (startLine == endLine && startCol > endCol)) {
+        int tempLine = startLine;
+        int tempCol = startCol;
+        startLine = endLine;
+        startCol = endCol;
+        endLine = tempLine;
+        endCol = tempCol;
+    }
+    if (startLine == endLine) {
+        memmove(&lines[startLine].text[startCol], &lines[startLine].text[endCol], lines[startLine].length - endCol + 1);
+        lines[startLine].length -= (endCol - startCol);
+    } else {
+        strcat(lines[startLine].text + startCol, lines[endLine].text + endCol);
+        lines[startLine].length = strlen(lines[startLine].text);
+        for (int i = endLine + 1; i < numLines; i++) {
+            lines[startLine + 1] = lines[i];
+            startLine++;
+        }
+        numLines -= (endLine - startLine);
+    }
+    cursorLine = startLine;
+    cursorCol = startCol;
+}
+
+void ClearSelection() {
+    selectionStartLine = selectionStartCol = selectionEndLine = selectionEndCol = -1;
+    isSelecting = false;
+}
+
 void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, int mods) {
     static double lastPressTime = 0.0;
     double currentTime = glfwGetTime();
@@ -132,81 +174,85 @@ void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, 
     if (action == GLFW_PRESS || action == GLFW_REPEAT) {
         if (ctrlPressed) {
             repeatInterval = 0.001;
-        } else {
-            repeatInterval = 0.03;
-        }
-        HandleKeyRepeat(key, currentTime);
-        if (ctrlPressed) {
-            if (selectionStartLine == -1 && selectionStartCol == -1) {
+            if (!isSelecting) {
                 selectionStartLine = cursorLine;
                 selectionStartCol = cursorCol;
+                isSelecting = true;
             }
         } else {
+            repeatInterval = 0.03;
             selectionStartLine = selectionStartCol = selectionEndLine = selectionEndCol = -1;
+            isSelecting = false;
         }
+        HandleKeyRepeat(key, currentTime);
         switch (key) {
-            case GLFW_KEY_BACKSPACE: 
-                DeleteChar(); 
+            case GLFW_KEY_BACKSPACE:
+                if (isSelecting) {
+                    DeleteSelection();
+                    ClearSelection(); 
+                } else {
+                    DeleteChar(); 
+                }
                 break;
-            case GLFW_KEY_DELETE: 
-                DeleteCharAfterCursor(); 
+            case GLFW_KEY_DELETE:
+                if (isSelecting) {
+                    DeleteSelection();
+                    ClearSelection(); 
+                } else {
+                    DeleteCharAfterCursor(); 
+                }
                 break;
-            case GLFW_KEY_ENTER: 
-                InsertNewline(); 
+            case GLFW_KEY_ENTER:
+                InsertNewline();
                 break;
-            case GLFW_KEY_LEFT: 
-                cursorCol = fmax(0, cursorCol - 1); 
+            case GLFW_KEY_LEFT:
+                cursorCol = fmax(0, cursorCol - 1);
                 break;
-            case GLFW_KEY_RIGHT: 
-                cursorCol = fmin(lines[cursorLine].length, cursorCol + 1); 
+            case GLFW_KEY_RIGHT:
+                cursorCol = fmin(lines[cursorLine].length, cursorCol + 1);
                 break;
-            case GLFW_KEY_UP: 
-                cursorLine = fmax(0, cursorLine - 1); 
-                cursorCol = fmin(cursorCol, lines[cursorLine].length); 
+            case GLFW_KEY_UP:
+                cursorLine = fmax(0, cursorLine - 1);
+                cursorCol = fmin(cursorCol, lines[cursorLine].length);
                 break;
-            case GLFW_KEY_DOWN: 
-                cursorLine = fmin(numLines - 1, cursorLine + 1); 
-                cursorCol = fmin(cursorCol, lines[cursorLine].length); 
+            case GLFW_KEY_DOWN:
+                cursorLine = fmin(numLines - 1, cursorLine + 1);
+                cursorCol = fmin(cursorCol, lines[cursorLine].length);
                 break;
-            case 47: 
-                if (ctrlPressed) fontSize = Lerp(fontSize, fontSize - 1.0f, Easing(window.deltatime, "CubicOut"));  
+            case 47:
+                if (ctrlPressed) fontSize = Lerp(fontSize, fontSize - 1.0f, Easing(window.deltatime, "CubicOut"));
                 break;
-            case 93: 
-                if (ctrlPressed) fontSize = Lerp(fontSize, fontSize + 1.0f, Easing(window.deltatime, "CubicOut")); 
+            case 93:
+                if (ctrlPressed) fontSize = Lerp(fontSize, fontSize + 1.0f, Easing(window.deltatime, "CubicOut"));
                 break;
-            case GLFW_KEY_HOME: 
-                cursorCol = 0; 
+            case GLFW_KEY_HOME:
+                cursorCol = 0;
                 break;
-            case GLFW_KEY_END: 
+            case GLFW_KEY_END:
                 cursorCol = lines[cursorLine].length;
                 break;
-            case GLFW_KEY_PAGE_UP: 
-                cursorLine = fmax(0, cursorLine - maxVisibleLines); 
-                cursorCol = fmin(cursorCol, lines[cursorLine].length); 
+            case GLFW_KEY_PAGE_UP:
+                cursorLine = fmax(0, cursorLine - maxVisibleLines);
+                cursorCol = fmin(cursorCol, lines[cursorLine].length);
                 break;
-            case GLFW_KEY_PAGE_DOWN: 
-                cursorLine = fmin(numLines - 1, cursorLine + maxVisibleLines); 
-                cursorCol = fmin(cursorCol, lines[cursorLine].length); 
+            case GLFW_KEY_PAGE_DOWN:
+                cursorLine = fmin(numLines - 1, cursorLine + maxVisibleLines);
+                cursorCol = fmin(cursorCol, lines[cursorLine].length);
                 break;
+
             default:
                 break;
         }
-        if (ctrlPressed) {
+        if (ctrlPressed && isSelecting) {
             selectionEndLine = cursorLine;
             selectionEndCol = cursorCol;
         }
         AdjustScrollToCursor();
-        const char* keyName = glfwGetKeyName(key, 0);
-        if (keyName) {
-            int charCode = KeyChar(keyName);
-            if (charCode != GLFW_KEY_UNKNOWN) {
-                // printf("Key pressed: %s (Keycode: %d)\n", keyName, charCode);
-            }
-        }
     } else if (action == GLFW_RELEASE) {
         keyStates[key] = false;
         if (!ctrlPressed) {
             isSelecting = false;
+            ClearSelection();
         }
     }
 }
@@ -264,9 +310,9 @@ void DrawTextMod(int x, int y, Font font, float fontSize, const char* text, Colo
         GLuint indices[] = {0, 1, 2, 2, 3, 0};
         bool isSelected = (i >= cursorStart && i <= cursorEnd);
         if (isSelected) {
-            RenderShaderText((ShaderObject){camera, shaderfontcursor, vertices, indices, sizeof(vertices), sizeof(indices)}, color);
+            RenderShaderText((ShaderObject){camera, shaderfontcursor, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
         } else {
-            RenderShaderText((ShaderObject){camera, shaderfont, vertices, indices, sizeof(vertices), sizeof(indices)}, color);
+            RenderShaderText((ShaderObject){camera, shaderfont, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
         }
         xpos += (advanceWidth * scale);
         if (text[i + 1]) {
@@ -284,7 +330,7 @@ void DrawTextMod(int x, int y, Font font, float fontSize, const char* text, Colo
     glDisable(GL_BLEND);
 }
 
-void DrawTextEditor(Font font, float fontSize, Color textColor, Color lineNumberColor, int cursorLine, int cursorCol) {
+void DrawTextEditor(Font font, float fontSize, Color textColor, int cursorLine, int cursorCol) {
     int lineHeight = GetTextSize(font, fontSize, "gj|").height;
     int numVisibleLines = window.screen_height / lineHeight;
     int startLine = fmax(0, scrollY / lineHeight);
@@ -294,29 +340,74 @@ void DrawTextEditor(Font font, float fontSize, Color textColor, Color lineNumber
     int cursorPosInTextBlock = -1;
     int selectionStart = -1;
     int selectionEnd = -1;
+    int selectionStartGlobal = (isSelecting && selectionStartLine != -1 && selectionStartCol != -1) 
+                               ? GetGlobalTextPosition(selectionStartLine, selectionStartCol) : -1;
+    int selectionEndGlobal = (isSelecting && selectionEndLine != -1 && selectionEndCol != -1) 
+                             ? GetGlobalTextPosition(selectionEndLine, selectionEndCol) : -1;
+    if (selectionStartGlobal > selectionEndGlobal) {
+        int temp = selectionStartGlobal;
+        selectionStartGlobal = selectionEndGlobal;
+        selectionEndGlobal = temp;
+    }
+    if (selectionStartGlobal > selectionEndGlobal) {
+        int temp = selectionStartGlobal;
+        selectionStartGlobal = selectionEndGlobal;
+        selectionEndGlobal = temp;
+    }
     for (int i = startLine; i < endLine; i++) {
+        int lineLength = strlen(lines[i].text);
         if (i == cursorLine) {
             cursorPosInTextBlock = textBlockLen + cursorCol;
         }
-        if (selectionStart == -1) selectionStart = cursorPosInTextBlock;
-        if (selectionEnd == -1) selectionEnd = cursorPosInTextBlock;
-        textBlockLen += snprintf(textBlock + textBlockLen, sizeof(textBlock) - textBlockLen, "%s\n", lines[i].text);
+        for (int j = 0; j < lineLength; ++j) {
+            char currentChar = lines[i].text[j];
+            int currentGlobalPos = GetGlobalTextPosition(i, j);
+            if (i == cursorLine && j == cursorCol) {
+                if (currentChar == ' ' || currentChar == '\t' || currentChar == '\n' || currentChar == '\0') {
+                    currentChar = '_';
+                }
+            }
+            textBlock[textBlockLen++] = currentChar;
+            if (isSelecting && selectionStartGlobal != -1 && selectionEndGlobal != -1 && 
+                currentGlobalPos >= selectionStartGlobal && currentGlobalPos <= selectionEndGlobal) {
+                if (selectionStart == -1) selectionStart = textBlockLen - 1;
+                selectionEnd = textBlockLen;
+            }
+        }
+        if (cursorLine == i && cursorCol == lineLength) {
+            textBlock[textBlockLen++] = '_';
+            textBlock[textBlockLen++] = '\n';
+        } else {
+            textBlock[textBlockLen++] = '\n';
+        }
     }
     textBlock[textBlockLen] = '\0';
-    if (cursorPosInTextBlock >= 0) {
-        if (cursorPosInTextBlock < selectionStart) selectionStart = cursorPosInTextBlock;
-        if (cursorPosInTextBlock > selectionEnd) selectionEnd = cursorPosInTextBlock;
+    if (isSelecting && selectionStartGlobal != -1 && selectionEndGlobal != -1 && selectionStartGlobal == selectionEndGlobal) {
+        selectionStart = cursorPosInTextBlock;
+        selectionEnd = cursorPosInTextBlock + 1;
+    } else if (!isSelecting || selectionStart == -1 || selectionEnd == -1) {
+        selectionStart = selectionEnd = -1;
     }
-    DrawTextMod(0, 0, font, fontSize, textBlock, textColor, selectionStart, selectionEnd);
+    if (cursorPosInTextBlock != -1) {
+        if (selectionStart == -1 || selectionEnd == -1) {
+            selectionStart = cursorPosInTextBlock;
+            selectionEnd = cursorPosInTextBlock + 1;
+        } else if (cursorPosInTextBlock < selectionStart || cursorPosInTextBlock > selectionEnd) {
+            selectionStart = cursorPosInTextBlock;
+            selectionEnd = cursorPosInTextBlock + 1;
+        }
+    }
+    DrawTextMod(0, 0, font, fontSize, textBlock, textColor, selectionStart, selectionEnd - 1);
 }
 
 int main(int argc, char** argv) {
-    WindowInit(windowWidth, windowHeight, "Grafenic - Text Editor");
+    WindowInit(1920, 1080, "Grafenic - Text Editor");
     font = LoadFont("./res/fonts/JetBrains.ttf");
     font.nearest = false;
     shaderfontcursor = LoadShader("./res/shaders/default.vert", "./res/shaders/fontcursor.frag");
     shaderfontcursor.hotreloading = true;
     shaderdefault.hotreloading = true;
+    shaderfont.hotreloading = true;
     InitializeLine(0);
     glfwSetCharCallback(window.w, CharCallbackMod);
     glfwSetKeyCallback(window.w, KeyCallbackMod);
@@ -324,7 +415,7 @@ int main(int argc, char** argv) {
     fontSize = 100.0;
     while (!WindowState()) {
         WindowClear();
-        DrawTextEditor(font, Scaling(fontSize), WHITE, GRAY, cursorLine, cursorCol);
+        DrawTextEditor(font, Scaling(fontSize), WHITE, cursorLine, cursorCol);
         // Modular ui.h functions
             ExitPromt(font);
         WindowProcess();

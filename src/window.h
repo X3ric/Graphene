@@ -480,7 +480,7 @@ extern Window window;
     Font GenAtlas(Font font);
     Font LoadFont(const char* fontPath);
     TextSize GetTextSize(Font font, float fontSize, const char* text);
-    void RenderShaderText(ShaderObject obj, Color color);
+    void RenderShaderText(ShaderObject obj, Color color, float fontSize);
     void DrawText(int x, int y, Font font, float fontSize, const char* text, Color color);
 // END
 
