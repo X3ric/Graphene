@@ -184,7 +184,10 @@ void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, 
             }
         } else {
             repeatInterval = 0.03;
-            selectionStartLine = selectionStartCol = selectionStartLine = selectionEndCol = -1;
+            selectionStartLine = cursorLine;
+            selectionEndLine = cursorLine + 1;
+            selectionStartCol = cursorCol;
+            selectionEndCol = cursorCol;
             isSelecting = false;
         }
         HandleKeyRepeat(key, currentTime);
@@ -253,7 +256,6 @@ void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, 
         keyStates[key] = false;
         if (!ctrlPressed) {
             isSelecting = false;
-            selectionStartLine = selectionStartCol = selectionEndLine = selectionEndCol = -1;
         }
     }
 }
@@ -345,12 +347,7 @@ void DrawTextEditor(Font font, float fontSize, Color textColor, int cursorLine, 
                                ? GetGlobalTextPosition(selectionStartLine, selectionStartCol) : -1;
     int selectionEndGlobal = (isSelecting && selectionEndLine != -1 && selectionEndCol != -1) 
                              ? GetGlobalTextPosition(selectionEndLine, selectionEndCol) : -1;
-    if (selectionStartGlobal > selectionEndGlobal) {
-        int temp = selectionStartGlobal;
-        selectionStartGlobal = selectionEndGlobal;
-        selectionEndGlobal = temp;
-    }
-    if (selectionStartGlobal > selectionEndGlobal) {
+    if (selectionStartGlobal != -1 && selectionEndGlobal != -1 && selectionStartGlobal > selectionEndGlobal) {
         int temp = selectionStartGlobal;
         selectionStartGlobal = selectionEndGlobal;
         selectionEndGlobal = temp;
@@ -369,7 +366,7 @@ void DrawTextEditor(Font font, float fontSize, Color textColor, int cursorLine, 
                 }
             }
             textBlock[textBlockLen++] = currentChar;
-            if (isSelecting && selectionStartGlobal != -1 && selectionEndGlobal != -1 && 
+            if (isSelecting && selectionStartGlobal != -1 && selectionEndGlobal != -1 &&
                 currentGlobalPos >= selectionStartGlobal && currentGlobalPos <= selectionEndGlobal) {
                 if (selectionStart == -1) selectionStart = textBlockLen - 1;
                 selectionEnd = textBlockLen;
