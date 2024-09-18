@@ -150,19 +150,22 @@ void DeleteSelection() {
         memmove(&lines[startLine].text[startCol], &lines[startLine].text[endCol], lines[startLine].length - endCol + 1);
         lines[startLine].length -= (endCol - startCol);
     } else {
-        strcat(lines[startLine].text + startCol, lines[endLine].text + endCol);
+        strncat(lines[startLine].text + startCol, lines[endLine].text + endCol, MAX_TEXT_LENGTH - startCol - 1);
         lines[startLine].length = strlen(lines[startLine].text);
+        int linesToRemove = endLine - startLine;
         for (int i = endLine + 1; i < numLines; i++) {
-            lines[startLine + 1] = lines[i];
-            startLine++;
+            lines[i - linesToRemove] = lines[i];
         }
-        numLines -= (endLine - startLine);
+        for (int i = numLines - linesToRemove; i < numLines; i++) {
+            free(lines[i].text);
+            lines[i].text = NULL;
+            lines[i].length = 0;
+        }
+
+        numLines -= linesToRemove;
     }
     cursorLine = startLine;
     cursorCol = startCol;
-}
-
-void ClearSelection() {
     selectionStartLine = selectionStartCol = selectionEndLine = selectionEndCol = -1;
     isSelecting = false;
 }
@@ -181,23 +184,21 @@ void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, 
             }
         } else {
             repeatInterval = 0.03;
-            selectionStartLine = selectionStartCol = selectionEndLine = selectionEndCol = -1;
+            selectionStartLine = selectionStartCol = selectionStartLine = selectionEndCol = -1;
             isSelecting = false;
         }
         HandleKeyRepeat(key, currentTime);
         switch (key) {
             case GLFW_KEY_BACKSPACE:
-                if (isSelecting) {
+                if (ctrlPressed) {
                     DeleteSelection();
-                    ClearSelection(); 
                 } else {
                     DeleteChar(); 
                 }
                 break;
             case GLFW_KEY_DELETE:
-                if (isSelecting) {
+                if (ctrlPressed) {
                     DeleteSelection();
-                    ClearSelection(); 
                 } else {
                     DeleteCharAfterCursor(); 
                 }
@@ -252,7 +253,7 @@ void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, 
         keyStates[key] = false;
         if (!ctrlPressed) {
             isSelecting = false;
-            ClearSelection();
+            selectionStartLine = selectionStartCol = selectionEndLine = selectionEndCol = -1;
         }
     }
 }
@@ -412,7 +413,7 @@ int main(int argc, char** argv) {
     glfwSetCharCallback(window.w, CharCallbackMod);
     glfwSetKeyCallback(window.w, KeyCallbackMod);
     glfwSetScrollCallback(window.w, ScrollCallbackMod);
-    fontSize = 100.0;
+    fontSize = 200.0;
     while (!WindowState()) {
         WindowClear();
         DrawTextEditor(font, Scaling(fontSize), WHITE, cursorLine, cursorCol);
