@@ -185,7 +185,7 @@ void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, 
         } else {
             repeatInterval = 0.03;
             selectionStartLine = cursorLine;
-            selectionEndLine = cursorLine + 1;
+            selectionEndLine = cursorLine;
             selectionStartCol = cursorCol;
             selectionEndCol = cursorCol;
             isSelecting = false;
@@ -247,15 +247,15 @@ void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, 
             default:
                 break;
         }
-        if (ctrlPressed && isSelecting) {
-            selectionEndLine = cursorLine;
-            selectionEndCol = cursorCol;
-        }
+        selectionEndLine = cursorLine;
+        selectionEndCol = cursorCol;
         AdjustScrollToCursor();
     } else if (action == GLFW_RELEASE) {
         keyStates[key] = false;
         if (!ctrlPressed) {
             isSelecting = false;
+            selectionStartLine = selectionEndLine = cursorLine;
+            selectionStartCol = selectionEndCol = cursorCol;
         }
     }
 }

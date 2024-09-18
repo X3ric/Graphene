@@ -10,6 +10,18 @@ uniform float Size;
 in vec2 texCoord;
 out vec4 fragColor;
 
+float SmoothEdge(float alpha, float edgeWidth) {
+    return smoothstep(0.5 - edgeWidth, 0.5 + edgeWidth, alpha);
+}
+
+vec3 SubpixelRender(vec2 texCoord, sampler2D texture, float edgeWidth, vec2 resolution) {
+    vec2 subpixelOffset = vec2(1.0 / resolution.x, 0.0);
+    float alphaR = SmoothEdge(texture2D(texture, texCoord - subpixelOffset).a, edgeWidth);
+    float alphaG = SmoothEdge(texture2D(texture, texCoord).a, edgeWidth);
+    float alphaB = SmoothEdge(texture2D(texture, texCoord + subpixelOffset).a, edgeWidth);
+    return vec3(alphaR, alphaG, alphaB);
+}
+
 void main() {
     vec2 subpixelOffset = vec2(1.0 / iResolution.x, 0.0);
     float minSize = 0.001;
@@ -24,11 +36,9 @@ void main() {
     } else {
         edgeWidth = minEdge + ((Size - minSize) / (maxSize - minSize)) * (maxEdge - minEdge);
     }
-    float alphaR = smoothstep(0.5 - edgeWidth, 0.5 + edgeWidth, texture(Texture, texCoord - subpixelOffset).a); // Red subpixel
-    float alphaG = smoothstep(0.5 - edgeWidth, 0.5 + edgeWidth, texture(Texture, texCoord).a);                  // Green subpixel
-    float alphaB = smoothstep(0.5 - edgeWidth, 0.5 + edgeWidth, texture(Texture, texCoord + subpixelOffset).a); // Blue subpixel
-    vec3 subpixelAlpha = vec3(alphaR, alphaG, alphaB);
+    vec3 subpixelAlpha = SubpixelRender(texCoord, Texture, edgeWidth, iResolution);
     vec4 texColor = vec4(Color.rgb * subpixelAlpha, max(subpixelAlpha.r, max(subpixelAlpha.g, subpixelAlpha.b)) * Color.a);
-    texColor.a = - texColor.a;
+    texColor.a = -texColor.a;
     fragColor = 1.0 - texColor * Color;
 }
+
