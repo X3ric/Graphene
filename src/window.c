@@ -38,6 +38,7 @@ typedef struct {
     int                   height;
     int                   width;
     int                   refresh_rate;
+    double                time;
     double                deltatime;
     int                   fpslimit;
     double                fps;
@@ -53,25 +54,24 @@ Window window;
 #include "audio.c"
 #include "render/draw.c"
 
-void WindowFrames(){
-    static double previousframetime = 0.0;
-    double targetTime = 1.0 / window.fpslimit;
-    window.deltatime = glfwGetTime();
-    double elapsedTime = window.deltatime - previousframetime;
-    if (window.fpslimit != 0) {
-        while (elapsedTime < targetTime) {
-            window.deltatime = glfwGetTime();
-            elapsedTime = window.deltatime - previousframetime;
+void WindowFrames() {
+    static double previousFrameTime = 0.0;
+    window.time = glfwGetTime();
+    double elapsedTime = window.time - previousFrameTime;
+    double targetTime = (window.fpslimit > 0) ? (1.0 / window.fpslimit) : 0.0;
+    if (window.fpslimit > 0 && elapsedTime < targetTime) {
+        double sleepTime = (targetTime - elapsedTime) * 1000000;
+        if (sleepTime > 0) {
+            usleep((unsigned int)sleepTime);
         }
+        window.time = glfwGetTime();
+        elapsedTime = window.time - previousFrameTime;
     }
-    if (elapsedTime != 0) {
-        window.fps = 1.0 / elapsedTime;
-    } else {
-        window.fps = 0.0;
-    }
-    previousframetime = window.deltatime;
-    if(window.debug.fps){
-        print("FPS: %.0f\n",window.fps);
+    window.deltatime = elapsedTime;
+    window.fps = (elapsedTime > 0.0) ? (1.0 / elapsedTime) : 0.0;
+    previousFrameTime = window.time;
+    if (window.debug.fps) {
+        print("FPS: %.0f\n", window.fps);
     }
 }
 
@@ -145,7 +145,7 @@ int WindowInit(int width, int height, char* title)
         return -1;
     }
     glfwWindowHint(GLFW_SAMPLES, window.samples);
-    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
+    //glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     if (window.opt.transparent) {
         glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GL_TRUE); 
     }
@@ -184,7 +184,7 @@ int WindowInit(int width, int height, char* title)
     } else {
         glfwSwapInterval(0);
     }
-    glfwSetInputMode(window.w, GLFW_STICKY_KEYS, GLFW_TRUE);
+    //glfwSetInputMode(window.w, GLFW_STICKY_KEYS, GLFW_TRUE);
     glEnable(GL_MULTISAMPLE);
     if(window.depthbits != 0) {
         glfwWindowHint(GLFW_DEPTH_BITS, window.depthbits);

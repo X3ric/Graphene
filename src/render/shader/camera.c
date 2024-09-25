@@ -83,9 +83,7 @@ void CalculateProjections(ShaderObject obj, GLfloat *Model, GLfloat *Projection,
 }
 
 void RenderShader(ShaderObject obj) {
-    if (obj.shader.hotreloading) {
-        obj.shader = ShaderHotReload(obj.shader);
-    }
+    if (obj.shader.hotreloading) obj.shader = ShaderHotReload(obj.shader);
     // Projection Matrix
         GLfloat Projection[16], Model[16], View[16];
         CalculateProjections(obj,Model,Projection,View);
@@ -96,13 +94,11 @@ void RenderShader(ShaderObject obj) {
                 glDepthFunc(GL_LEQUAL);
                 glEnable(GL_CULL_FACE);
                 glCullFace(GL_BACK);
-                glFrontFace(GL_CCW);
             } else {
                 glEnable(GL_DEPTH_TEST);
                 glDepthFunc(GL_LESS);
                 glEnable(GL_CULL_FACE);
                 glCullFace(GL_FRONT);
-                glFrontFace(GL_CCW);
             }
         }
     // Debug

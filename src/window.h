@@ -39,6 +39,7 @@ typedef struct {
     int                   height;
     int                   width;
     int                   refresh_rate;
+    double                time;
     double                deltatime;
     int                   fpslimit;
     double                fps;
@@ -172,6 +173,7 @@ extern Window window;
     bool DirExists(const char* path);
     bool FileExists(const char* filename);
     time_t GetFileModTime(const char* filePath);
+    int AddWatch(int inotifyFd, const char* filePath);
     // File saving
     char* FileLoad(const char* path);
     char* FileSave(const char* path, const char* text);
@@ -445,8 +447,13 @@ extern Window window;
     void DrawImageShader(Img image, float x, float y, float width, float height, GLfloat angle, Shader shader);
     void SaveScreenshot(const char *filename, int x, int y, int width, int height);
 // FONT
-    #define STB_RECT_PACK_IMPLEMENTATION
-    #include <stb_rect_pack.h>
+    
+    #include <ft2build.h>
+    #include FT_FREETYPE_H
+    #include FT_GLYPH_H
+    #include FT_OUTLINE_H
+    #include FT_BITMAP_H
+
     #define STB_TRUETYPE_IMPLEMENTATION
     #include <stb_truetype.h>
 
@@ -461,15 +468,15 @@ extern Window window;
     #define MAX_GLYPHS 256
 
     typedef struct {
-        stbtt_fontinfo fontInfo;   // Font information
-        unsigned char* fontBuffer; // Font data buffer
-        unsigned char* atlasData;  // Atlas texture data
-        GLuint textureID;          // OpenGL texture ID
-        int atlasWidth;            // Dimensions of the atlas Width
-        int atlasHeight;           // Dimensions of the atlas Height
-        Glyph glyphs[MAX_GLYPHS];  // Glyph data for ASCII characters 32-127
-        float fontSize;            // Font size for which glyphs were generated
-        bool nearest;              // Nearest filter
+        FT_Library library;       // FreeType library instance
+        FT_Face face;             // Font face
+        unsigned char* atlasData; // Atlas texture data
+        GLuint textureID;         // OpenGL texture ID
+        int atlasWidth;           // Dimensions of the atlas Width
+        int atlasHeight;          // Dimensions of the atlas Height
+        Glyph glyphs[MAX_GLYPHS]; // Glyph data for ASCII characters 32-127
+        float fontSize;           // Font size for which glyphs were generated
+        bool nearest;             // Nearest filter
     } Font;
 
     typedef struct {
@@ -477,11 +484,20 @@ extern Window window;
         int height;
     } TextSize;
 
+    typedef struct FontCacheNode {
+        float fontSize;
+        Font font;
+        struct FontCacheNode* next;
+    } FontCacheNode;
+
+    int CalculateAtlasSize(int numGlyphs, float fontSize, int oversampling);
     Font GenAtlas(Font font);
     Font LoadFont(const char* fontPath);
+    Font SetFontSize(Font font, float fontSize);
     TextSize GetTextSize(Font font, float fontSize, const char* text);
     void RenderShaderText(ShaderObject obj, Color color, float fontSize);
     void DrawText(int x, int y, Font font, float fontSize, const char* text, Color color);
+    void FreeFontCache();
 // END
 
 int WindowInit(int width, int height, char* title);

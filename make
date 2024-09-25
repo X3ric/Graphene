@@ -1,8 +1,8 @@
 #!/bin/bash -i
 
 CC="clang -w"
-CFLAGS="-I./deps -I./src"
-LDFLAGS="-lglfw -lGL -lpthread -lGLEW -lm"
+CFLAGS="-I./deps -I./src $(pkg-config --cflags freetype2)"
+LDFLAGS="-lglfw -lGL -lGLEW -lm -lfreetype"
 TARGET="grafenic"
 
 need() {
@@ -57,8 +57,8 @@ fzf-splitted () {
 compile-library() {
     echo -e "$CC $CFLAGS -fPIC -c src/window.c -o ./build/window.o"
     $CC $CFLAGS -fPIC -c src/window.c -o ./build/window.o
-    echo -e "$CC -shared -o ./build/libgrafenic.so ./build/window.o $LDFLAGS"
-    $CC -shared -o ./build/libgrafenic.so ./build/window.o $LDFLAGS
+    echo -e "$CC $CFLAGS -shared -o ./build/libgrafenic.so ./build/window.o $LDFLAGS"
+    $CC $CFLAGS -shared -o ./build/libgrafenic.so ./build/window.o $LDFLAGS
 }
 
 build() {
@@ -80,8 +80,8 @@ build() {
     fi
 
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-    echo -e "$CC $SOURCES -o $TARGET -lgrafenic $LDFLAGS"
-    $CC $SOURCES -o $TARGET -lgrafenic $LDFLAGS
+    echo -e "$CC $CFLAGS $SOURCES -o $TARGET -lgrafenic $LDFLAGS"
+    $CC $CFLAGS $SOURCES -o $TARGET -lgrafenic $LDFLAGS
 }
 
 run() {

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <math.h>
 #include <sys/stat.h>
+#include <sys/inotify.h>
 #include <unistd.h>
 #include <limits.h>
 
@@ -346,6 +347,14 @@ time_t GetFileModTime(const char* filePath) {
         return -1;
     }
     return attrib.st_mtime;
+}
+
+int AddWatch(int inotifyFd, const char* filePath) {
+    int wd = inotify_add_watch(inotifyFd, filePath, IN_MODIFY);
+    if (wd == -1) {
+        fprintf(stderr, "Error adding inotify watch for %s\n", filePath);
+    }
+    return wd;
 }
 
 // File Saving

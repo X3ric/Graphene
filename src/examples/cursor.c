@@ -22,10 +22,8 @@ int main(int arglenght, char** args)
             }
         // Cursor
             double speed;
-            double clampz;
-            clampz = (window.deltatime);
-            float lerpSpeed = 0.0003f * clampz;
-            const float speedcursor = 0.75f;
+            float lerpSpeed = window.deltatime * 5.0f;
+            const float speedcursor = 1.0f;
             static float timer = 0.0f;
             float circleSize = Lerp(0.0f, (float)Scaling(10), timer);
             float circleborderSize = Lerp(0.0f, (float)Scaling(3), timer);
@@ -38,11 +36,11 @@ int main(int arglenght, char** args)
                 }
                 mousecursorx = Lerp(mousecursorx, mouse.x, lerpSpeed);
                 mousecursory = Lerp(mousecursory, mouse.y, lerpSpeed);
-                timer = Lerp(timer, 0.0f, lerpSpeed);
+                timer = Lerp(timer, 0.0f, window.deltatime / 0.15f);
             } else {
                 mousecursorx = Lerp(mousecursorx, mouse.x, lerpSpeed);
                 mousecursory = Lerp(mousecursory, mouse.y, lerpSpeed);
-                timer += window.deltatime / (speedcursor * 1000.0f);
+                timer += window.deltatime / 0.15f;
             }
             if (IsInside(mousecursorx, mousecursory, 0, window.screen_height - bary, window.screen_width, window.screen_height / 12) && isKey("Space")) {
                 DrawCircle(mousecursorx, mousecursory, circleSize, PURPLE);

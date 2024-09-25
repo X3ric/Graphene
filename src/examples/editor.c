@@ -224,10 +224,10 @@ void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, 
                 cursorCol = fmin(cursorCol, lines[cursorLine].length);
                 break;
             case 47:
-                if (ctrlPressed) fontSize = Lerp(fontSize, fontSize - 1.0f, Easing(window.deltatime, "CubicOut"));
+                if (ctrlPressed) fontSize = Lerp(fontSize, fontSize - 4.0f, Easing(window.deltatime, "Linear"));
                 break;
             case 93:
-                if (ctrlPressed) fontSize = Lerp(fontSize, fontSize + 1.0f, Easing(window.deltatime, "CubicOut"));
+                if (ctrlPressed) fontSize = Lerp(fontSize, fontSize + 4.0f, Easing(window.deltatime, "Linear"));
                 break;
             case GLFW_KEY_HOME:
                 cursorCol = 0;
@@ -263,71 +263,59 @@ void KeyCallbackMod(GLFWwindow* glfw_window, int key, int scancode, int action, 
 void DrawTextMod(int x, int y, Font font, float fontSize, const char* text, Color color, int cursorStart, int cursorEnd) {
     if (fontSize <= 1.0f) fontSize = 1.0f;
     if (color.a == 0) color.a = 255;
-    if (!font.fontBuffer || !font.textureID) return;
+    if (!font.face) return;
+    font = SetFontSize(font, fontSize);
+    if (!font.textureID) return;
     glBindTexture(GL_TEXTURE_2D, font.textureID);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    float scale = stbtt_ScaleForPixelHeight(&font.fontInfo, fontSize);
-    int ascent, descent, lineGap;
-    stbtt_GetFontVMetrics(&font.fontInfo, &ascent, &descent, &lineGap);
-    float ascent_px = ascent * scale;
-    float lineHeight = (ascent - descent + lineGap) * scale;
+    FT_Face face = font.face;
+    int ascent = face->size->metrics.ascender >> 6;
+    int descent = face->size->metrics.descender >> 6;
+    int lineGap = (face->size->metrics.height - (face->size->metrics.ascender - face->size->metrics.descender)) >> 6;
+    int lineHeight = ascent - descent + lineGap;
     float xpos = (float)x;
-    float ypos = (float)y + ascent_px;
+    float ypos = (float)y + ascent;
+    FT_UInt previous = 0;
     for (size_t i = 0; text[i] != '\0'; ++i) {
         if (text[i] == '\n') {
             ypos += lineHeight;
             xpos = (float)x;
+            previous = 0;
             continue;
         }
-        int codepoint = (unsigned char)text[i];
+        FT_UInt codepoint = (unsigned char)text[i];
         if (codepoint < 32 || codepoint >= 32 + MAX_GLYPHS) continue;
-        Glyph* g = &font.glyphs[codepoint - 32];
-        if (!g) continue;
-        int glyphIndex = stbtt_FindGlyphIndex(&font.fontInfo, codepoint);
-        if (glyphIndex == 0) continue;
-        int advanceWidth, leftSideBearing;
-        stbtt_GetGlyphHMetrics(&font.fontInfo, glyphIndex, &advanceWidth, &leftSideBearing);
-        int x0, y0, x1, y1;
-        stbtt_GetGlyphBitmapBox(&font.fontInfo, glyphIndex, 1.0f, 1.0f, &x0, &y0, &x1, &y1);
-        float x0_scaled = x0 * scale;
-        float y0_scaled = y0 * scale;
-        float x1_scaled = x1 * scale;
-        float y1_scaled = y1 * scale;
-        float x_start = xpos + leftSideBearing * scale;
-        float y_start = ypos;
-        float x_pos = x_start + x0_scaled;
-        float y_pos = y_start + y0_scaled;
-        float w = (x1_scaled - x0_scaled);
-        float h = (y1_scaled - y0_scaled);
-        float u0 = g->u0;
-        float v0 = g->v0;
-        float u1 = g->u1;
-        float v1 = g->v1;
+        Glyph* glyph = &font.glyphs[codepoint - 32];
+        if (FT_HAS_KERNING(face) && previous && codepoint) {
+            FT_Vector delta;
+            FT_Get_Kerning(face, previous, codepoint, FT_KERNING_DEFAULT, &delta);
+            xpos += delta.x >> 6;
+        }
+        previous = codepoint;
+        float x_start = xpos + glyph->xoff;
+        float y_start = ypos - glyph->yoff;
+        float w = glyph->x1 - glyph->x0;
+        float h = glyph->y1 - glyph->y0;
+        float u0 = glyph->u0;
+        float v0 = glyph->v0;
+        float u1 = glyph->u1;
+        float v1 = glyph->v1;
         GLfloat vertices[] = {
-            x_pos,     y_pos + h, 0.0f, u0, v1,  // Top-left
-            x_pos + w, y_pos + h, 0.0f, u1, v1,  // Top-right
-            x_pos + w, y_pos,     0.0f, u1, v0,  // Bottom-right
-            x_pos,     y_pos,     0.0f, u0, v0   // Bottom-left
+            x_start,     y_start + h, 0.0f, u0, v1,  // Top-left
+            x_start + w, y_start + h, 0.0f, u1, v1,  // Top-right
+            x_start + w, y_start,     0.0f, u1, v0,  // Bottom-right
+            x_start,     y_start,     0.0f, u0, v0   // Bottom-left
         };
         GLuint indices[] = {0, 1, 2, 2, 3, 0};
         bool isSelected = (i >= cursorStart && i <= cursorEnd);
-        if (isSelected) {
-            RenderShaderText((ShaderObject){camera, shaderfontcursor, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
-        } else {
-            RenderShaderText((ShaderObject){camera, shaderfont, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
-        }
-        xpos += (advanceWidth * scale);
-        if (text[i + 1]) {
-            unsigned char nextCodepoint = (unsigned char)text[i + 1];
-            if (nextCodepoint >= 32 && nextCodepoint < 32 + MAX_GLYPHS) {
-                int nextGlyphIndex = stbtt_FindGlyphIndex(&font.fontInfo, nextCodepoint);
-                if (nextGlyphIndex != 0) {
-                    int kernAdvance = stbtt_GetGlyphKernAdvance(&font.fontInfo, glyphIndex, nextGlyphIndex);
-                    xpos += kernAdvance * scale;
-                }
-            }
-        }
+        //if (isSelected) {
+        //    RenderShaderText((ShaderObject){camera, shaderfontcursor, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
+        //} else {
+        //    RenderShaderText((ShaderObject){camera, shaderfont, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
+        //}
+        RenderShaderText((ShaderObject){camera, shaderfont, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
+        xpos += glyph->xadvance;
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_BLEND);
@@ -400,17 +388,16 @@ void DrawTextEditor(Font font, float fontSize, Color textColor, int cursorLine, 
 
 int main(int argc, char** argv) {
     WindowInit(1920, 1080, "Grafenic - Text Editor");
-    font = LoadFont("./res/fonts/JetBrains.ttf");
-    font.nearest = false;
+    font = LoadFont("./res/fonts/JetBrains.ttf");font.nearest = false;
     shaderfontcursor = LoadShader("./res/shaders/default.vert", "./res/shaders/fontcursor.frag");
-    shaderfontcursor.hotreloading = true;
-    shaderdefault.hotreloading = true;
-    shaderfont.hotreloading = true;
+    //shaderfontcursor.hotreloading = true;
+    //shaderdefault.hotreloading = true;
+    //shaderfont.hotreloading = true;
     InitializeLine(0);
     glfwSetCharCallback(window.w, CharCallbackMod);
     glfwSetKeyCallback(window.w, KeyCallbackMod);
     glfwSetScrollCallback(window.w, ScrollCallbackMod);
-    fontSize = 200.0;
+    fontSize = 100.0;
     while (!WindowState()) {
         WindowClear();
         DrawTextEditor(font, Scaling(fontSize), WHITE, cursorLine, cursorCol);

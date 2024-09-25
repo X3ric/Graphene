@@ -23,9 +23,9 @@ void Update(void) {
         double speed;
         //print(text("Cam lerp: %.5f\n", (float)window.deltatime));
         if (isKeyDown("LeftShift")) {
-            speed = 0.0003f;
+            speed = 0.3f;
         } else {
-            speed = 0.00015f;
+            speed = 0.15f;
         }
         if (isKeyDown("w")) {
             cube.y += speed * (float)window.deltatime;
@@ -47,22 +47,22 @@ void Update(void) {
             targetZ = 0.0f;
             mouse.scroll.y = 0;
             lastscrolly = mouse.scroll.y;
-            cube.x = Lerp(cube.x, 0.0f, 0.001f * (float)window.deltatime);
-            cube.y = Lerp(cube.y, 0.0f, 0.001f * (float)window.deltatime);
-            cube.z = Lerp(cube.z, 0.0f, 0.001f * (float)window.deltatime);
+            cube.x = Lerp(cube.x, 0.0f, 5.0f * (float)window.deltatime);
+            cube.y = Lerp(cube.y, 0.0f, 5.0f * (float)window.deltatime);
+            cube.z = Lerp(cube.z, 0.0f, 5.0f * (float)window.deltatime);
         } else {
             if (lastscrolly != mouse.scroll.y) {
                 targetZ = cube.z + (mouse.scroll.y - lastscrolly);
                 mouse.scroll.y = 0;
             }
-            cube.z = Lerp(cube.z, targetZ, 0.0005f * (float)window.deltatime);
+            cube.z = Lerp(cube.z, targetZ, 5.0f * (float)window.deltatime);
             lastscrolly = mouse.scroll.y;
         }
     // Rotation Vec3
         Vec3 rot;
-        rot.x = (float)window.deltatime * 0.05f;
-        rot.y = (float)window.deltatime * 0.06f;
-        rot.z = (float)window.deltatime * 0.07f;
+        rot.x = (float)window.time * 0.5f;
+        rot.y = (float)window.time * 0.6f;
+        rot.z = (float)window.time * 0.7f;
     // 3d envoiriment
         //window.debug.point = true;
         //window.debug.pointsize = 10.0f;

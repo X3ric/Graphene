@@ -32,13 +32,11 @@ void DrawPopUp(const char* title, Font font, int fontsize, int width, int height
 void Fps(int x, int y, Font font, int size) {
     static double lastTime = 0.0;
     static char fpsText[16];
-    double currentTime = window.deltatime * window.fps;
-    if (currentTime - lastTime >= 0.25) {
-        snprintf(fpsText, sizeof(fpsText), "FPS: %.0f", window.fps);
-        lastTime = currentTime;
-    }
+    double currentTime = window.time;
+    snprintf(fpsText, sizeof(fpsText), "FPS: %.0f", window.fps);
     DrawText(x, y, font, size, fpsText, WHITE);
 }
+
 void ExitPromt(Font font) {
     if (isKey("Esc")) {
         DrawPopUp("Quit? y/n",font,Scaling(17),window.screen_width/18, window.screen_height/35);

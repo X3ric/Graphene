@@ -1,7 +1,12 @@
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_LCD_FILTER_H
+#include FT_GLYPH_H
+#include FT_OUTLINE_H
+#include FT_BITMAP_H
+
 #define STB_RECT_PACK_IMPLEMENTATION
 #include <stb_rect_pack.h>
-#define STB_TRUETYPE_IMPLEMENTATION
-#include <stb_truetype.h>
 
 typedef struct {
     float x0, y0, x1, y1;  // Coordinates of the glyph in the atlas (in pixels)
@@ -14,90 +19,175 @@ typedef struct {
 #define MAX_GLYPHS 256
 
 typedef struct {
-    stbtt_fontinfo fontInfo;   // Font information
-    unsigned char* fontBuffer; // Font data buffer
+    FT_Library library;        // FreeType library instance
+    FT_Face face;              // Font face
     unsigned char* atlasData;  // Atlas texture data
     GLuint textureID;          // OpenGL texture ID
+    int oversampling;          // Dimensions of the oversampling
     int atlasWidth;            // Dimensions of the atlas Width
     int atlasHeight;           // Dimensions of the atlas Height
     Glyph glyphs[MAX_GLYPHS];  // Glyph data for ASCII characters 32-127
     float fontSize;            // Font size for which glyphs were generated
     bool nearest;              // Nearest filter
+    bool subpixel;              // Subpixel
 } Font;
 
+typedef struct FontCacheNode {
+    float fontSize;
+    Font font;
+    struct FontCacheNode* next;
+} FontCacheNode;
+
+FontCacheNode* fontCache = NULL;
+
+int CalculateAtlasSize(int numGlyphs, float fontSize, int oversampling) {
+    float estimatedAreaPerGlyph = (fontSize * fontSize) * oversampling * oversampling;
+    float totalArea = estimatedAreaPerGlyph * numGlyphs;
+    int atlasDimension = (int)sqrt(totalArea);
+    int powerOfTwo = 1;
+    while (powerOfTwo < atlasDimension) {
+        powerOfTwo *= 2;
+    }
+    return powerOfTwo;
+}
+
 Font GenAtlas(Font font) {
-    if (font.fontSize <= 1) font.fontSize = 32.0f;
-    if (!font.fontBuffer) return font;
-    font.atlasWidth = 1024;
-    font.atlasHeight = 1024;
-    font.atlasData = (unsigned char*)calloc(font.atlasWidth * font.atlasHeight * 4, sizeof(unsigned char)); // RGBA
+    if (font.fontSize <= 1) font.fontSize = 128.0f;
+    if (font.oversampling <= 1) font.oversampling = 4;
+    if (!font.face) return font;
+    FT_Error error = FT_Set_Pixel_Sizes(font.face, 0, font.fontSize);
+    if (error) {
+        return font;
+    }
+    if (font.subpixel) FT_Library_SetLcdFilter(font.library, FT_LCD_FILTER_DEFAULT);
+    int estimatedAtlasSize = CalculateAtlasSize(MAX_GLYPHS, font.fontSize, font.oversampling);
+    font.atlasWidth = estimatedAtlasSize;
+    font.atlasHeight = estimatedAtlasSize;
+    font.atlasData = (unsigned char*)calloc(font.atlasWidth * font.atlasHeight * 4, sizeof(unsigned char));
     if (!font.atlasData) {
-        free(font.fontBuffer);
+        FT_Done_Face(font.face);
+        FT_Done_FreeType(font.library);
         return font;
     }
-    stbtt_pack_context packContext;
-    if (!stbtt_PackBegin(&packContext, font.atlasData, font.atlasWidth, font.atlasHeight, 0, 1, NULL)) {
-        free(font.atlasData);
-        free(font.fontBuffer);
-        return font;
-    }
-    stbtt_PackSetOversampling(&packContext, 4, 4);
-    stbtt_packedchar packedChars[MAX_GLYPHS];
-    if (!stbtt_PackFontRange(&packContext, font.fontBuffer, 0, font.fontSize, 32, MAX_GLYPHS, packedChars)) {
-        stbtt_PackEnd(&packContext);
-        free(font.atlasData);
-        free(font.fontBuffer);
-        return font;
-    }
-    for (int i = font.atlasWidth * font.atlasHeight - 1; i >= 0; --i) {
-        unsigned char alpha = font.atlasData[i]; // Get the alpha value from the single-channel data
-        font.atlasData[i * 4 + 0] = 255;         // Red channel (set to white)
-        font.atlasData[i * 4 + 1] = 255;         // Green channel (set to white)
-        font.atlasData[i * 4 + 2] = 255;         // Blue channel (set to white)
-        font.atlasData[i * 4 + 3] = alpha;       // Alpha channel
-    }
+    stbrp_context packContext;
+    stbrp_node* nodes = (stbrp_node*)malloc(sizeof(stbrp_node) * font.atlasWidth);
+    stbrp_init_target(&packContext, font.atlasWidth, font.atlasHeight, nodes, font.atlasWidth);
+    stbrp_rect* rects = (stbrp_rect*)malloc(sizeof(stbrp_rect) * MAX_GLYPHS);
     for (int i = 0; i < MAX_GLYPHS; ++i) {
-        font.glyphs[i].x0 = packedChars[i].x0;
-        font.glyphs[i].y0 = packedChars[i].y0;
-        font.glyphs[i].x1 = packedChars[i].x1;
-        font.glyphs[i].y1 = packedChars[i].y1;
-        font.glyphs[i].xoff = packedChars[i].xoff;
-        font.glyphs[i].yoff = packedChars[i].yoff;
-        font.glyphs[i].xadvance = packedChars[i].xadvance;
-        font.glyphs[i].u0 = packedChars[i].x0 / (float)font.atlasWidth;
-        font.glyphs[i].v0 = packedChars[i].y0 / (float)font.atlasHeight;
-        font.glyphs[i].u1 = packedChars[i].x1 / (float)font.atlasWidth;
-        font.glyphs[i].v1 = packedChars[i].y1 / (float)font.atlasHeight;
+        int codepoint = 32 + i;
+        if (font.subpixel) {
+            error = FT_Load_Char(font.face, codepoint, FT_LOAD_RENDER | FT_LOAD_FORCE_AUTOHINT | FT_LOAD_TARGET_LCD);
+        } else {
+            error = FT_Load_Char(font.face, codepoint, FT_LOAD_RENDER | FT_LOAD_FORCE_AUTOHINT);
+        }
+        if (error) {
+            rects[i].w = rects[i].h = 0;
+            rects[i].id = i;
+            continue;
+        }
+        FT_GlyphSlot slot = font.face->glyph;
+        FT_Bitmap* bitmap = &slot->bitmap;
+        rects[i].id = i;
+        rects[i].w = font.subpixel ? (bitmap->width / 3) + 2 : bitmap->width + 2;
+        rects[i].h = bitmap->rows + 2;
     }
-    stbtt_PackEnd(&packContext);
+    stbrp_pack_rects(&packContext, rects, MAX_GLYPHS);
+    for (int i = 0; i < MAX_GLYPHS; ++i) {
+        if (!rects[i].was_packed) continue;
+        int codepoint = 32 + i;
+        if (font.subpixel) {
+            error = FT_Load_Char(font.face, codepoint, FT_LOAD_RENDER | FT_LOAD_FORCE_AUTOHINT | FT_LOAD_TARGET_LCD);
+        } else {
+            error = FT_Load_Char(font.face, codepoint, FT_LOAD_RENDER | FT_LOAD_FORCE_AUTOHINT);
+        }
+        if (error) continue;
+        FT_GlyphSlot slot = font.face->glyph;
+        FT_Bitmap* bitmap = &slot->bitmap;
+        int x = rects[i].x;
+        int y = rects[i].y;
+       if (font.subpixel) {
+            for (int row = 0; row < bitmap->rows; ++row) {
+                for (int col = 0; col < bitmap->width; col += 3) {
+                    int srcIndex = row * bitmap->pitch + col;
+                    int dstIndex = ((y + row) * font.atlasWidth + (x + col / 3)) * 4;
+                    font.atlasData[dstIndex + 0] = bitmap->buffer[srcIndex + 0];
+                    font.atlasData[dstIndex + 1] = bitmap->buffer[srcIndex + 1];
+                    font.atlasData[dstIndex + 2] = bitmap->buffer[srcIndex + 2];
+                    font.atlasData[dstIndex + 3] = bitmap->buffer[srcIndex + 3];
+                }
+            }
+        } else {
+            for (int row = 0; row < bitmap->rows; ++row) {
+                for (int col = 0; col < bitmap->width; ++col) {
+                    int srcIndex = row * bitmap->pitch + col;
+                    int dstIndex = ((y + row) * font.atlasWidth + (x + col)) * 4;
+                    font.atlasData[dstIndex + 0] = 255;
+                    font.atlasData[dstIndex + 1] = 255;
+                    font.atlasData[dstIndex + 2] = 255;
+                    font.atlasData[dstIndex + 3] = bitmap->buffer[srcIndex];    
+                }
+            }
+        }
+        Glyph* glyph = &font.glyphs[i];
+        glyph->x0 = x;
+        glyph->y0 = y;
+        glyph->x1 = x + (font.subpixel ? bitmap->width / 3 : bitmap->width);
+        glyph->y1 = y + bitmap->rows;
+        glyph->xoff = slot->bitmap_left;
+        glyph->yoff = slot->bitmap_top;
+        glyph->xadvance = slot->advance.x >> 6;
+        glyph->u0 = (float)glyph->x0 / (float)font.atlasWidth;
+        glyph->v0 = (float)glyph->y0 / (float)font.atlasHeight;
+        glyph->u1 = (float)glyph->x1 / (float)font.atlasWidth;
+        glyph->v1 = (float)glyph->y1 / (float)font.atlasHeight;
+    }
     glGenTextures(1, &font.textureID);
     glBindTexture(GL_TEXTURE_2D, font.textureID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, font.atlasWidth, font.atlasHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, font.atlasData);
     glTexOpt(font.nearest ? GL_NEAREST : GL_LINEAR, GL_CLAMP_TO_EDGE);
-    stbi_write_jpg("/tmp/atlas.jpg", font.atlasWidth, font.atlasHeight, 1, font.atlasData, font.atlasWidth);
     free(font.atlasData);
+    font.atlasData = NULL;
+    free(nodes);
+    free(rects);
     return font;
 }
 
 Font LoadFont(const char* fontPath) {
     Font font = {0};
-    long size;
-    FILE* fp = fopen(fontPath, "rb");
-    if (!fp) return font;
-    fseek(fp, 0, SEEK_END);
-    size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    font.fontBuffer = (unsigned char*)malloc(size);
-    if (font.fontBuffer) {
-        fread(font.fontBuffer, size, 1, fp);
-        if (!stbtt_InitFont(&font.fontInfo, font.fontBuffer, stbtt_GetFontOffsetForIndex(font.fontBuffer, 0))) {
-            free(font.fontBuffer);
-            fclose(fp);
-            return font;
-        }
+    FT_Error error = FT_Init_FreeType(&font.library);
+    if (error) {
+        return font;
     }
-    fclose(fp);
+    error = FT_New_Face(font.library, fontPath, 0, &font.face);
+    if (error == FT_Err_Unknown_File_Format) {
+        FT_Done_FreeType(font.library);
+        return font;
+    } else if (error) {
+        FT_Done_FreeType(font.library);
+        return font;
+    }
+    if (font.fontSize <= 1) font.fontSize = 128.0f;
+    if (font.oversampling <= 1) font.oversampling = 1;
     font = GenAtlas(font);
+    return font;
+}
+
+Font SetFontSize(Font font, float fontSize) {
+    if (fontSize <= 1) fontSize = 128.0f;
+    FontCacheNode* node = fontCache;
+    while (node) {
+        if (node->fontSize == fontSize) {
+            return node->font;
+        }
+        node = node->next;
+    }
+    font.fontSize = fontSize;
+    font = GenAtlas(font);
+    FontCacheNode* newNode = (FontCacheNode*)malloc(sizeof(FontCacheNode));
+    newNode->fontSize = fontSize;
+    newNode->font = font;
+    newNode->next = fontCache;
+    fontCache = newNode;
     return font;
 }
 
@@ -107,12 +197,18 @@ typedef struct {
 } TextSize;
 
 TextSize GetTextSize(Font font, float fontSize, const char* text) {
-    if (!font.fontBuffer) return (TextSize){0, 0};
+    if (!font.face) return (TextSize){0, 0};
     TextSize size = {0, 0};
-    float scale = stbtt_ScaleForPixelHeight(&font.fontInfo, fontSize);
-    int ascent, descent, lineGap;
-    stbtt_GetFontVMetrics(&font.fontInfo, &ascent, &descent, &lineGap);
-    int lineHeight = (int)((ascent - descent + lineGap) * scale);
+    FT_Error error = FT_Set_Pixel_Sizes(font.face, 0, fontSize);
+    if (error) {
+        return size;
+    }
+    FT_Face face = font.face;
+    FT_GlyphSlot slot = face->glyph;
+    int ascent = face->size->metrics.ascender >> 6;
+    int descent = face->size->metrics.descender >> 6;
+    int lineGap = (face->size->metrics.height - (face->size->metrics.ascender - face->size->metrics.descender)) >> 6;
+    int lineHeight = ascent - descent + lineGap;
     int currentLineWidth = 0;
     int maxLineWidth = 0;
     for (size_t i = 0; text[i] != '\0'; ++i) {
@@ -124,9 +220,18 @@ TextSize GetTextSize(Font font, float fontSize, const char* text) {
             size.height += lineHeight;
             continue;
         }
-        int advanceWidth, leftSideBearing;
-        stbtt_GetCodepointHMetrics(&font.fontInfo, text[i], &advanceWidth, &leftSideBearing);
-        currentLineWidth += (int)(advanceWidth * scale);
+        int codepoint = (unsigned char)text[i];
+        error = FT_Load_Char(face, codepoint, FT_LOAD_DEFAULT);
+        if (error) {
+            continue;
+        }
+        currentLineWidth += slot->advance.x >> 6;
+        if (text[i + 1]) {
+            int nextCodepoint = (unsigned char)text[i + 1];
+            FT_Vector delta;
+            FT_Get_Kerning(face, codepoint, nextCodepoint, FT_KERNING_DEFAULT, &delta);
+            currentLineWidth += delta.x >> 6;
+        }
     }
     if (currentLineWidth > maxLineWidth) {
         maxLineWidth = currentLineWidth;
@@ -135,7 +240,6 @@ TextSize GetTextSize(Font font, float fontSize, const char* text) {
     size.height += lineHeight;
     return size;
 }
-
 
 void RenderShaderText(ShaderObject obj, Color color, float fontSize) {
     if (obj.shader.hotreloading) {
@@ -206,67 +310,72 @@ void RenderShaderText(ShaderObject obj, Color color, float fontSize) {
 void DrawText(int x, int y, Font font, float fontSize, const char* text, Color color) {
     if (fontSize <= 1.0f) fontSize = 1.0f;
     if (color.a == 0) color.a = 255;
-    if (!font.fontBuffer || !font.textureID) return;
+    if (!font.face) return;
+    font = SetFontSize(font, fontSize);
+    if (!font.textureID) return;
     glBindTexture(GL_TEXTURE_2D, font.textureID);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    float scale = stbtt_ScaleForPixelHeight(&font.fontInfo, fontSize);
-    int ascent, descent, lineGap;
-    stbtt_GetFontVMetrics(&font.fontInfo, &ascent, &descent, &lineGap);
-    float ascent_px = ascent * scale;
-    float lineHeight = (ascent - descent + lineGap) * scale;
+    FT_Face face = font.face;
+    int ascent = face->size->metrics.ascender >> 6;
+    int descent = face->size->metrics.descender >> 6;
+    int lineGap = (face->size->metrics.height - (face->size->metrics.ascender - face->size->metrics.descender)) >> 6;
+    int lineHeight = ascent - descent + lineGap;
+    float ypos = (float)y + ascent;
     float xpos = (float)x;
-    float ypos = (float)y + ascent_px;
+    FT_UInt previous = 0;
     for (size_t i = 0; text[i] != '\0'; ++i) {
         if (text[i] == '\n') {
             ypos += lineHeight;
             xpos = (float)x;
+            previous = 0;
             continue;
         }
-        int codepoint = (unsigned char)text[i];
+        FT_UInt codepoint = (unsigned char)text[i];
         if (codepoint < 32 || codepoint >= 32 + MAX_GLYPHS) continue;
-        Glyph* g = &font.glyphs[codepoint - 32];
-        if (!g) continue;
-        int glyphIndex = stbtt_FindGlyphIndex(&font.fontInfo, codepoint);
-        if (glyphIndex == 0) continue;
-        int advanceWidth, leftSideBearing;
-        stbtt_GetGlyphHMetrics(&font.fontInfo, glyphIndex, &advanceWidth, &leftSideBearing);
-        int x0, y0, x1, y1;
-        stbtt_GetGlyphBitmapBox(&font.fontInfo, glyphIndex, 1.0f, 1.0f, &x0, &y0, &x1, &y1);
-        float x0_scaled = x0 * scale;
-        float y0_scaled = y0 * scale;
-        float x1_scaled = x1 * scale;
-        float y1_scaled = y1 * scale;
-        float x_start = xpos + leftSideBearing * scale;
-        float y_start = ypos;
-        float x_pos = x_start + x0_scaled;
-        float y_pos = y_start + y0_scaled;
-        float w = (x1_scaled - x0_scaled);
-        float h = (y1_scaled - y0_scaled);
-        float u0 = g->u0;
-        float v0 = g->v0;
-        float u1 = g->u1;
-        float v1 = g->v1;
+        Glyph* glyph = &font.glyphs[codepoint - 32];
+        if (FT_HAS_KERNING(face) && previous && codepoint) {
+            FT_Vector delta;
+            FT_Get_Kerning(face, previous, codepoint, FT_KERNING_DEFAULT, &delta);
+            xpos += delta.x >> 6;
+        }
+        previous = codepoint;
+        float x_start = xpos + glyph->xoff;
+        float y_start = ypos - glyph->yoff;
+        float w = glyph->x1 - glyph->x0;
+        float h = glyph->y1 - glyph->y0;
+        float u0 = glyph->u0;
+        float v0 = glyph->v0;
+        float u1 = glyph->u1;
+        float v1 = glyph->v1;
         GLfloat vertices[] = {
-            x_pos,     y_pos + h, 0.0f, u0, v1,  // Top-left
-            x_pos + w, y_pos + h, 0.0f, u1, v1,  // Top-right
-            x_pos + w, y_pos,     0.0f, u1, v0,  // Bottom-right
-            x_pos,     y_pos,     0.0f, u0, v0   // Bottom-left
+            x_start,     y_start + h, 0.0f, u0, v1,  // Top-left
+            x_start + w, y_start + h, 0.0f, u1, v1,  // Top-right
+            x_start + w, y_start,     0.0f, u1, v0,  // Bottom-right
+            x_start,     y_start,     0.0f, u0, v0   // Bottom-left
         };
         GLuint indices[] = {0, 1, 2, 2, 3, 0};
         RenderShaderText((ShaderObject){camera, shaderfont, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
-        xpos += (advanceWidth * scale);
-        if (text[i + 1]) {
-            unsigned char nextCodepoint = (unsigned char)text[i + 1];
-            if (nextCodepoint >= 32 && nextCodepoint < 32 + MAX_GLYPHS) {
-                int nextGlyphIndex = stbtt_FindGlyphIndex(&font.fontInfo, nextCodepoint);
-                if (nextGlyphIndex != 0) {
-                    int kernAdvance = stbtt_GetGlyphKernAdvance(&font.fontInfo, glyphIndex, nextGlyphIndex);
-                    xpos += kernAdvance * scale;
-                }
-            }
-        }
+        xpos += glyph->xadvance;
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_BLEND);
+}
+
+void FreeFontCache() {
+    FontCacheNode* node = fontCache;
+    while (node) {
+        FontCacheNode* next = node->next;
+        if (node->font.textureID) {
+            glDeleteTextures(1, &node->font.textureID);
+            node->font.textureID = 0;
+        }
+        if (node->font.atlasData) {
+            free(node->font.atlasData);
+            node->font.atlasData = NULL;
+        }
+        free(node);
+        node = next;
+    }
+    fontCache = NULL;
 }
