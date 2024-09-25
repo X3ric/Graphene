@@ -32,6 +32,8 @@ typedef struct {
     bool subpixel;              // Subpixel
 } Font;
 
+#define ATLAS_FONT_SIZE 128.0
+
 typedef struct FontCacheNode {
     float fontSize;
     Font font;
@@ -52,7 +54,7 @@ int CalculateAtlasSize(int numGlyphs, float fontSize, int oversampling) {
 }
 
 Font GenAtlas(Font font) {
-    if (font.fontSize <= 1) font.fontSize = 128.0f;
+    if (font.fontSize <= 1) font.fontSize = ATLAS_FONT_SIZE;
     if (font.oversampling <= 1) font.oversampling = 4;
     if (!font.face) return font;
     FT_Error error = FT_Set_Pixel_Sizes(font.face, 0, font.fontSize);
@@ -145,6 +147,7 @@ Font GenAtlas(Font font) {
     glBindTexture(GL_TEXTURE_2D, font.textureID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, font.atlasWidth, font.atlasHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, font.atlasData);
     glTexOpt(font.nearest ? GL_NEAREST : GL_LINEAR, GL_CLAMP_TO_EDGE);
+    //stbi_write_jpg("/tmp/atlas.jpg", font.atlasWidth, font.atlasHeight, 1, font.atlasData, font.atlasWidth);
     free(font.atlasData);
     font.atlasData = NULL;
     free(nodes);
@@ -166,14 +169,14 @@ Font LoadFont(const char* fontPath) {
         FT_Done_FreeType(font.library);
         return font;
     }
-    if (font.fontSize <= 1) font.fontSize = 128.0f;
+    if (font.fontSize <= 1) font.fontSize = ATLAS_FONT_SIZE;
     if (font.oversampling <= 1) font.oversampling = 1;
     font = GenAtlas(font);
     return font;
 }
 
 Font SetFontSize(Font font, float fontSize) {
-    if (fontSize <= 1) fontSize = 128.0f;
+    if (fontSize <= 1) fontSize = ATLAS_FONT_SIZE;
     FontCacheNode* node = fontCache;
     while (node) {
         if (node->fontSize == fontSize) {
@@ -310,19 +313,18 @@ void RenderShaderText(ShaderObject obj, Color color, float fontSize) {
 void DrawText(int x, int y, Font font, float fontSize, const char* text, Color color) {
     if (fontSize <= 1.0f) fontSize = 1.0f;
     if (color.a == 0) color.a = 255;
-    if (!font.face) return;
-    font = SetFontSize(font, fontSize);
-    if (!font.textureID) return;
+    if (!font.face || !font.textureID) return;
+    float scale = fontSize / font.fontSize;
+    font = SetFontSize(font, font.fontSize);
     glBindTexture(GL_TEXTURE_2D, font.textureID);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     FT_Face face = font.face;
-    int ascent = face->size->metrics.ascender >> 6;
-    int descent = face->size->metrics.descender >> 6;
-    int lineGap = (face->size->metrics.height - (face->size->metrics.ascender - face->size->metrics.descender)) >> 6;
-    int lineHeight = ascent - descent + lineGap;
-    float ypos = (float)y + ascent;
+    int lineHeight = (face->size->metrics.height >> 6) * scale;
+    int ascent = (face->size->metrics.ascender >> 6) * scale;
+    int descent = (face->size->metrics.descender >> 6) * scale;
     float xpos = (float)x;
+    float ypos = (float)y + (120.0f  * scale);
     FT_UInt previous = 0;
     for (size_t i = 0; text[i] != '\0'; ++i) {
         if (text[i] == '\n') {
@@ -334,29 +336,80 @@ void DrawText(int x, int y, Font font, float fontSize, const char* text, Color c
         FT_UInt codepoint = (unsigned char)text[i];
         if (codepoint < 32 || codepoint >= 32 + MAX_GLYPHS) continue;
         Glyph* glyph = &font.glyphs[codepoint - 32];
-        if (FT_HAS_KERNING(face) && previous && codepoint) {
+        if (FT_HAS_KERNING(face) && previous) {
             FT_Vector delta;
             FT_Get_Kerning(face, previous, codepoint, FT_KERNING_DEFAULT, &delta);
-            xpos += delta.x >> 6;
+            xpos += (delta.x >> 6) * scale;
         }
         previous = codepoint;
-        float x_start = xpos + glyph->xoff;
-        float y_start = ypos - glyph->yoff;
-        float w = glyph->x1 - glyph->x0;
-        float h = glyph->y1 - glyph->y0;
-        float u0 = glyph->u0;
-        float v0 = glyph->v0;
-        float u1 = glyph->u1;
-        float v1 = glyph->v1;
+        float x_start = xpos + glyph->xoff * scale;
+        float y_start = ypos - glyph->yoff * scale;
+        float w = (glyph->x1 - glyph->x0) * scale;
+        float h = (glyph->y1 - glyph->y0) * scale;
         GLfloat vertices[] = {
-            x_start,     y_start + h, 0.0f, u0, v1,  // Top-left
-            x_start + w, y_start + h, 0.0f, u1, v1,  // Top-right
-            x_start + w, y_start,     0.0f, u1, v0,  // Bottom-right
-            x_start,     y_start,     0.0f, u0, v0   // Bottom-left
+            x_start,     y_start + h, 0.0f, glyph->u0, glyph->v1,
+            x_start + w, y_start + h, 0.0f, glyph->u1, glyph->v1,
+            x_start + w, y_start,     0.0f, glyph->u1, glyph->v0,
+            x_start,     y_start,     0.0f, glyph->u0, glyph->v0
         };
         GLuint indices[] = {0, 1, 2, 2, 3, 0};
         RenderShaderText((ShaderObject){camera, shaderfont, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
-        xpos += glyph->xadvance;
+        xpos += glyph->xadvance * scale;
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_BLEND);
+}
+
+void DrawTextEditor(int x, int y, Font font, float fontSize, const char* text, Color color, int cursorStart, int cursorEnd, Shader shaderfont, Shader shaderfontcursor) {
+    if (fontSize <= 1.0f) fontSize = 1.0f;
+    if (color.a == 0) color.a = 255;
+    if (!font.face || !font.textureID) return;
+    float scale = fontSize / font.fontSize;
+    font = SetFontSize(font, font.fontSize);
+    glBindTexture(GL_TEXTURE_2D, font.textureID);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    FT_Face face = font.face;
+    int lineHeight = (face->size->metrics.height >> 6) * scale;
+    int ascent = (face->size->metrics.ascender >> 6) * scale;
+    int descent = (face->size->metrics.descender >> 6) * scale;
+    float xpos = (float)x;
+    float ypos = (float)y + (120.0f  * scale);
+    FT_UInt previous = 0;
+    for (size_t i = 0; text[i] != '\0'; ++i) {
+        if (text[i] == '\n') {
+            ypos += lineHeight;
+            xpos = (float)x;
+            previous = 0;
+            continue;
+        }
+        FT_UInt codepoint = (unsigned char)text[i];
+        if (codepoint < 32 || codepoint >= 32 + MAX_GLYPHS) continue;
+        Glyph* glyph = &font.glyphs[codepoint - 32];
+        if (FT_HAS_KERNING(face) && previous) {
+            FT_Vector delta;
+            FT_Get_Kerning(face, previous, codepoint, FT_KERNING_DEFAULT, &delta);
+            xpos += (delta.x >> 6) * scale;
+        }
+        previous = codepoint;
+        float x_start = xpos + glyph->xoff * scale;
+        float y_start = ypos - glyph->yoff * scale;
+        float w = (glyph->x1 - glyph->x0) * scale;
+        float h = (glyph->y1 - glyph->y0) * scale;
+        GLfloat vertices[] = {
+            x_start,     y_start + h, 0.0f, glyph->u0, glyph->v1,
+            x_start + w, y_start + h, 0.0f, glyph->u1, glyph->v1,
+            x_start + w, y_start,     0.0f, glyph->u1, glyph->v0,
+            x_start,     y_start,     0.0f, glyph->u0, glyph->v0
+        };
+        GLuint indices[] = {0, 1, 2, 2, 3, 0};
+        bool isSelected = (i >= cursorStart && i <= cursorEnd);
+        if (isSelected) {
+            RenderShaderText((ShaderObject){camera, shaderfontcursor, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
+        } else {
+            RenderShaderText((ShaderObject){camera, shaderfont, vertices, indices, sizeof(vertices), sizeof(indices)}, color, fontSize);
+        }
+        xpos += glyph->xadvance * scale;
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_BLEND);

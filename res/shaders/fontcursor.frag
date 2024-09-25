@@ -13,7 +13,7 @@ out vec4 fragColor;
 void mainImage(in vec2 texCoord, in vec2 fragCoord, out vec4 fragColor) {
     //fragColor = vec4(texCoord, 0.0, 1.0); // uv debug
     vec4 Atlas = texture(Texture, texCoord);
-    //Atlas.a = 1.0 - Atlas.a;
+    Atlas.a = 1.0 -Atlas.a;
     fragColor = Atlas * Color;
 }
 

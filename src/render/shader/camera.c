@@ -66,11 +66,11 @@ void CalculateProjections(ShaderObject obj, GLfloat *Model, GLfloat *Projection,
         } else {
             MatrixOrthographicZoom(0.0f, window.screen_width, window.screen_height, 0.0f, obj.cam.near, obj.cam.far, pos.z, obj.is3d, Projection);
             MatrixTranslate(-centerX, -centerY, 0.0f, translateToCenter);
-            MatrixRotate(rot.x, rot.y, rot.z, rotate);
             MatrixTranslate(centerX, centerY, 0.0f, translateBack);
+            MatrixMultiply(translateToCenter, translateBack, translateBack);
+            MatrixRotate(rot.x, rot.y, rot.z, rotate);
+            MatrixMultiply(translateBack, rotate, Model);
             MatrixTranslate(pos.x, pos.y, 0.0f, translateFinal);
-            MatrixMultiply(translateToCenter, rotate, Model);
-            MatrixMultiply(Model, translateBack, Model);
             MatrixMultiply(Model, translateFinal, Model);
         }
     }

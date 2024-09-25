@@ -497,6 +497,7 @@ extern Window window;
     TextSize GetTextSize(Font font, float fontSize, const char* text);
     void RenderShaderText(ShaderObject obj, Color color, float fontSize);
     void DrawText(int x, int y, Font font, float fontSize, const char* text, Color color);
+    void DrawTextEditor(int x, int y, Font font, float fontSize, const char* text, Color color, int cursorStart, int cursorEnd, Shader shaderfont, Shader shaderfontcursor);
     void FreeFontCache();
 // END
 

@@ -2,7 +2,7 @@
 void DrawTextRows(Font font,int section,int rows, const char* textContent) {
     int y = window.screen_height / 12;
     int sectionWidth = window.screen_width / rows;
-    int fontsize = Scaling(50);
+    int fontsize = Scaling(40);
     TextSize textSize = GetTextSize(font, fontsize, textContent);
     int textX = section * sectionWidth + (sectionWidth - textSize.width) / 2;
     int textY = window.screen_height - y/2 - textSize.height/2;
@@ -11,7 +11,7 @@ void DrawTextRows(Font font,int section,int rows, const char* textContent) {
 
 void DrawTextColumn(Font font, int section, int totalSections, const char* textContent) {
     int sectionHeight = window.screen_height / totalSections;
-    int fontsize = Scaling(40);
+    int fontsize = Scaling(35);
     TextSize textSize = GetTextSize(font, fontsize, textContent);
     int textX = 10;
     int textY = section * sectionHeight + (textSize.height);
@@ -39,7 +39,7 @@ void Fps(int x, int y, Font font, int size) {
 
 void ExitPromt(Font font) {
     if (isKey("Esc")) {
-        DrawPopUp("Quit? y/n",font,Scaling(17),window.screen_width/18, window.screen_height/35);
+        DrawPopUp("Quit? y/n",font,Scaling(16),window.screen_width/18, window.screen_height/35);
         if (isKeyDown("Y")) {
             WindowStateSet(true);
         }
